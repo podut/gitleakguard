@@ -2,153 +2,104 @@
 inclusion: always
 ---
 
-# GitKeeper — Secret Protection Active
+# Security Tools — Always Active
 
-This project has GitKeeper installed. You must enforce the rules below automatically,
-without waiting to be asked. Act proactively on every relevant event.
-
----
-
-## AUTOMATIC TRIGGERS — do these without being asked
-
-### 1. Before every git commit (any mention of "commit", "git commit", "stage and commit")
-
-Run immediately:
-```
-git diff --cached --name-only --diff-filter=ACM
-```
-For each staged file:
-```
-git show :<filename>
-```
-Scan the content for secrets (see patterns below).
-
-- If secrets found → STOP. Do not write the commit command. Show findings and fix steps.
-- If clean → proceed with the commit suggestion.
-
-### 2. Before every git push (any mention of "push", "deploy", "ship", "release", "go live")
-
-Say: "Checking for secrets before push..." then scan all staged and recently committed files.
-If any secret is found in the last commit → warn before the push command.
-Remind: once pushed to a public repo, a credential is compromised even if deleted later.
-
-### 3. When writing any code that contacts an external service
-
-Automatically use environment variables. Never write real values:
-```js
-// Always write this:
-const key = process.env.SERVICE_API_KEY;
-
-// Never write this:
-const key = "sk-real-value-here";
-```
-
-For each new env var introduced in code:
-- Add to `.env.example`: `SERVICE_API_KEY=your_value_here`
-- Confirm `.env` is in `.gitignore` — if not, add it immediately
-
-### 4. When a file is opened or read that contains what looks like a real credential
-
-Flag it immediately before doing anything else:
-"Found what appears to be a real [Type] key in [file]:[line]. This should not be in source code."
-Then offer to move it to `.env` and replace with `process.env.VAR`.
-
-### 5. When a new npm package, pip package, or SDK is added that requires credentials
-
-Proactively create the `.env.example` entry before the user asks:
-"This package requires an API key. I've added `PACKAGE_API_KEY=your_value_here` to `.env.example`. Add the real value to `.env` (never commit `.env`)."
-
-### 6. When reviewing a pull request or reading a diff
-
-Scan every added line (`+` prefix) for the secret patterns below.
-Report any findings at the top of your review — before any other feedback.
+Aceste reguli se aplică automat, fără să fie cerute explicit.
 
 ---
 
-## SECRET PATTERNS — detect all of these
+## 1. gitleakguard / gitleaks — înainte de orice commit sau push
 
-| Type | Pattern | Example shape |
-|---|---|---|
-| AWS Access Key | `AKIA[0-9A-Z]{16}` | `AKIA` + 16 uppercase alphanum chars |
-| AWS Secret | 40-char base64 after aws_secret | 40-char mixed-case base64 string |
-| GitHub Token | `ghp_[36 chars]` or `github_pat_[82 chars]` | `ghp_` + 36 alphanumeric chars |
-| OpenAI Key | `sk-[48+ chars]` or `sk-proj-[40+ chars]` | `sk-proj-` + 40+ alphanumeric chars |
-| Anthropic Key | `sk-ant-api03-[95 chars]` | `sk-ant-api03-` + 95 chars |
-| Google API Key | `AIza[0-9A-Za-z_-]{35}` | `AIza` + 35 alphanumeric chars |
-| Stripe Live | `sk_live_[24+ chars]` | `sk_live_` + 24+ alphanumeric chars |
-| Stripe Test | `sk_test_[24+ chars]` | `sk_test_` + 24+ alphanumeric chars |
-| Slack Token | `xoxb-[numbers]-[numbers]-[24 chars]` | `xoxb-` + numbers + `-` + 24 chars |
-| Firebase | `AAAA[A-Za-z0-9_-]{7}:[A-Za-z0-9_-]{140}` | server key |
-| Private Key | `-----BEGIN (RSA\|EC\|DSA\|OPENSSH)? PRIVATE KEY-----` | any PEM block |
-| JWT | `eyJ[base64].[base64].[base64]` | 3-segment base64 token |
-| Credentials in URL | `scheme://user:password@host` | `postgresql://admin:pass@db.host` |
-| Generic secrets | `(password\|passwd\|secret\|api_key\|apikey\|auth_token\|access_token)\s*[=:]\s*['"][^'"]{8,}['"]` | `password = "abc123xyz"` |
+**Trigger:** utilizatorul menționează commit, push, stage, deploy, ship, merge, release.
 
-**Ignore these (false positives):**
-- Files: `node_modules/`, `dist/`, `build/`, `.env.example`, `.env.template`, `*.lock`, `*.min.js`
-- Placeholder values: `your_key_here`, `xxx`, `replace_me`, `changeme`, `example`, `dummy`
-- Test fixtures with clearly fake data
+Acțiune automată:
+1. `git diff --cached --name-only --diff-filter=ACM` — listează fișierele staged
+2. `git show :<file>` — citește conținutul fiecăruia
+3. Scanează după: `AKIA`, `sk-`, `sk-proj-`, `sk-ant-api`, `ghp_`, `AIza`, `sk_live_`, `sk_test_`, `xoxb-`, `-----BEGIN PRIVATE KEY-----`, `eyJ...eyJ...eyJ`, `scheme://user:pass@host`, variabile `password/secret/api_key/token` cu valori string
+4. Dacă găsești → **NU scrie comanda de commit**. Arată ce ai găsit + pași de remediere.
+5. Dacă e curat → continuă cu commit-ul.
+
+Niciodată nu reproduce credențiale reale în răspunsuri. Înlocuiește cu `process.env.VAR`.
 
 ---
 
-## REMEDIATION — always provide these steps when a secret is found
+## 2. semgrep — la review de cod sau PR
 
-### When secret is NOT yet committed (still in working tree or staged)
-1. `git restore --staged <file>` — unstage the file
-2. Move the value to `.env`: `VARIABLE_NAME=the_real_value`
-3. Add `.env` to `.gitignore` if not present
-4. Replace in code: `process.env.VARIABLE_NAME`
-5. Add to `.env.example`: `VARIABLE_NAME=your_value_here`
-6. Re-stage and commit the clean version
+**Trigger:** utilizatorul cere review, analizează un fișier, deschide un PR, menționează "verifică securitatea".
 
-### When secret IS committed but not pushed
-1. Do NOT push
-2. Move to `.env` and fix the code first
-3. Amend the commit: `git commit --amend` (rewrites local history)
-4. Or reset and recommit: `git reset HEAD~1 --soft` then recommit cleanly
+Acțiune automată — caută în codul arătat:
+- `eval(userInput)` → code injection
+- `innerHTML = ` cu variabilă → XSS
+- Query SQL construit prin concatenare → SQL injection
+- `Math.random()` pentru token/secret → crypto slab
+- `exec(` sau `spawn(` cu input utilizator → command injection
+- `fs.readFile(` cu path din request → path traversal
+- `Object.assign({}, req.body)` → prototype pollution
+- `jwt.verify(` fără `{ algorithms: [...] }` → JWT bypass
 
-### When secret IS already pushed to a remote
-1. **REVOKE IMMEDIATELY** — the credential is compromised regardless of cleanup:
-   - OpenAI: platform.openai.com → API Keys → Revoke
-   - Anthropic: console.anthropic.com → API Keys → Delete
-   - GitHub: Settings → Developer Settings → Tokens → Delete
-   - AWS: IAM → Users → Security Credentials → Deactivate
-   - Stripe: dashboard.stripe.com → Developers → API Keys → Roll Key
-   - Google: console.cloud.google.com → APIs → Credentials → Delete
-2. Fix the code (move to `.env`, use `process.env.VAR`)
-3. Clean history: `pip install git-filter-repo && git filter-repo --invert-paths --path <file>`
-4. Force push: `git push --force-with-lease`
-5. Notify all collaborators to re-clone
+Raportează ca `[SECURITY] <tip> în <fișier>:<linie>` — la ÎNCEPUTUL răspunsului.
 
 ---
 
-## COPY-PASTE FIX PROMPT
+## 3. njsscan — la editarea fișierelor JS/TS/Node.js
 
-When a secret is found, always provide this prompt the user can paste in any AI editor:
+**Trigger:** utilizatorul lucrează cu fișiere `.js`, `.ts`, `.mjs`, `.cjs` sau menționează Node.js, Express, Next.js, NestJS.
 
-```
-Caută toate credențialele hardcodate din proiect (API keys, tokens, parole, connection strings).
-Pentru fiecare: mută în .env, adaugă .env în .gitignore, înlocuiește cu process.env.VARIABLE_NAME,
-adaugă în .env.example cu valoare placeholder (nu valori reale).
-```
-
-```
-Find all hardcoded credentials (API keys, tokens, passwords, connection strings).
-For each: move to .env, add .env to .gitignore, replace with process.env.VARIABLE_NAME,
-add to .env.example with placeholder value (no real values).
-```
+Acțiune automată — aplică regulile semgrep de mai sus specific pentru Node.js.
+Dacă njsscan e instalat: sugerează `njsscan <fișier>` sau `docker run --rm -v "$(pwd):/code" opensecurity/njsscan /code`.
 
 ---
 
-## GITIGNORE MINIMUM — ensure these are always present
+## 4. retire — la instalarea sau modificarea dependențelor npm
 
-```
-.env
-.env.local
-.env.*.local
-.env.production
-*.pem
-*.key
-*.p12
-*.pfx
-```
+**Trigger:** utilizatorul rulează `npm install`, `yarn add`, modifică `package.json`, sau menționează dependențe/pachete.
+
+Acțiune automată:
+1. Spune: "Verificând dacă pachetul are vulnerabilități cunoscute..."
+2. Sugerează: `npm audit` sau `retire`
+3. Dacă versiunea are CVE cunoscut → avertizează și propune versiunea sigură
+
+---
+
+## 5. trivy — după build Docker sau înainte de deploy
+
+**Trigger:** utilizatorul menționează `docker build`, `docker push`, deploy container, release imagine.
+
+Acțiune automată:
+1. Spune: "Scanând imaginea pentru vulnerabilități..."
+2. Sugerează: `trivy image <nume-imagine>` sau `docker run --rm aquasec/trivy image <nume>`
+3. Dacă găsește CVE CRITICAL → blochează deploy-ul și arată ce pachete sunt afectate
+4. Verifică și Dockerfile pentru: rulare ca root, secrete în ENV/ARG, lipsă `.dockerignore`
+
+---
+
+## 6. build-image — la lucrul cu Dockerfile
+
+**Trigger:** utilizatorul editează sau creează un `Dockerfile`.
+
+Acțiune automată — verifică:
+- Există `.dockerignore`? Dacă nu → creează cu: `node_modules`, `.env`, `.git`, `*.log`
+- Sunt secrete în `ENV` sau `ARG`? → avertizează, sugerează runtime env vars
+- Rulează ca root (`USER` lipsă)? → adaugă `USER node`
+- `COPY . .` înainte de `RUN npm install`? → inversează pentru cache mai bun
+- Tag `latest` pe baza image? → sugerează tag fix (ex: `node:18-alpine`)
+
+---
+
+## 7. yarn-test — înainte de commit sau push
+
+**Trigger:** utilizatorul menționează commit, push, merge — și există un `package.json` cu script `test`.
+
+Acțiune automată:
+1. Întreabă: "Ai rulat testele? (`yarn test` / `npm test`)"
+2. Dacă utilizatorul confirmă că testele pică → **NU scrie comanda de commit**
+3. Dacă nu există teste → menționează că ar fi util să adaugi
+
+---
+
+## Reguli generale — mereu active
+
+- **Niciodată** nu scrie credențiale hardcodate în cod generat — folosește `process.env.VAR`
+- **La orice nou `process.env.VAR`** → adaugă în `.env.example` cu placeholder
+- **`.gitignore` minim** trebuie să conțină: `.env`, `.env.local`, `.env.*.local`, `*.pem`, `*.key`
+- **Dacă un credential a fost deja push-uit** → spune clar: "Credențialul este compromis. Revocă-l imediat." + link provider
