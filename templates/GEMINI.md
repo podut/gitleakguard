@@ -86,6 +86,51 @@ Acțiune automată — verifică:
 
 ---
 
+## 8. sonarqube — la review cod sau înainte de merge/deploy
+
+**Trigger:** utilizatorul menționează SonarQube, SonarCloud, quality gate, code quality, analiză statică, sau cere review înainte de merge/PR.
+
+Acțiune automată:
+1. Verifică dacă există `sonar-project.properties` în proiect
+2. Dacă există → sugerează `sonar-scanner` sau MCP tool `sonarqube_quality_gate`
+3. Dacă quality gate FAILED → listează condițiile care au eșuat, blochează deploy-ul
+4. Dacă are issues BLOCKER/CRITICAL → arată fișierele afectate și sugerează fix-uri
+5. Dacă sonar-scanner nu e instalat → sugerează `npm install -g sonar-scanner` sau Docker
+
+Comenzi utile:
+```bash
+sonar-scanner -Dsonar.token=$SONAR_TOKEN
+docker run --rm -e SONAR_TOKEN=$SONAR_TOKEN -v "$(pwd):/usr/src" sonarsource/sonar-scanner-cli
+```
+
+---
+
+## 9. zap — înainte de deploy în staging sau producție
+
+**Trigger:** utilizatorul menționează ZAP, OWASP ZAP, DAST, web scan, pentest, security test, "scanează aplicația", sau deploy la staging/prod.
+
+Acțiune automată:
+1. Verifică dacă ZAP daemon rulează la `http://localhost:8080`
+2. Dacă nu rulează → arată comanda Docker de start
+3. Dacă rulează → sugerează scan pe URL-ul aplicației
+4. Dacă găsește alerte HIGH/CRITICAL → blochează deploy-ul și listează endpoint-urile afectate
+5. **Atenție:** menționează că ZAP activ trebuie rulat DOAR pe medii de test, nu pe producție
+
+Comenzi utile:
+```bash
+# Start ZAP daemon
+docker run -d --name zap -p 8080:8080 ghcr.io/zaproxy/zaproxy:stable \
+  zap.sh -daemon -port 8080 -host 0.0.0.0 -config api.key=zap-api-key
+
+# Baseline scan (sigur, pasiv)
+docker run --rm ghcr.io/zaproxy/zaproxy:stable zap-baseline.py -t https://myapp.com -r report.html
+
+# Full scan (agresiv, doar pe test env)
+docker run --rm ghcr.io/zaproxy/zaproxy:stable zap-full-scan.py -t http://localhost:3000 -r report.html
+```
+
+---
+
 ## 7. yarn-test — înainte de commit sau push
 
 **Trigger:** utilizatorul menționează commit, push, merge — și există un `package.json` cu script `test`.
