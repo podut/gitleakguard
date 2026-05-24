@@ -41,7 +41,7 @@ $ npx gitleakguard init
 ### AI Editor Skill (Claude Code, Cursor, Windsurf, Copilot)
 
 ```bash
-npx skills add podut/gitleakguard
+npx skills add podutpetru/gitleakguard
 ```
 
 Instalează skill-ul în orice editor AI care suportă formatul Vercel Skills.
@@ -50,27 +50,29 @@ Activează `/gitleakguard` ca slash command în Claude Code, Cursor Agent etc.
 ### macOS / Linux / WSL
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/podut/gitleakguard/main/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/podutpetru/gitleakguard/main/install.sh | sh
 ```
 
 ### Windows (PowerShell)
 
 ```powershell
-irm https://raw.githubusercontent.com/podut/gitleakguard/main/install.ps1 | iex
+irm https://raw.githubusercontent.com/podutpetru/gitleakguard/main/install.ps1 | iex
 ```
 
 ### Docker
 
 ```bash
 # Scanează staged files din repo-ul curent
-docker run --rm -v "$(pwd):/repo" podut/gitleakguard scan
+docker run --rm -v "$(pwd):/repo" podutpetru/gitleakguard scan
 
 # Scanează tot istoricul git
-docker run --rm -v "$(pwd):/repo" podut/gitleakguard history
+docker run --rm -v "$(pwd):/repo" podutpetru/gitleakguard history
 
 # Setup (instalează hook-ul în repo-ul montat)
-docker run --rm -v "$(pwd):/repo" podut/gitleakguard init
+docker run --rm -v "$(pwd):/repo" podutpetru/gitleakguard init
 ```
+
+> Image: [`podutpetru/gitleakguard`](https://hub.docker.com/r/podutpetru/gitleakguard) — node:18-alpine + git, ~50MB
 
 ### npm / npx
 
@@ -86,7 +88,7 @@ gitleakguard init
 ### Manual (clone)
 
 ```bash
-git clone https://github.com/podut/gitleakguard.git .gitleakguard
+git clone https://github.com/podutpetru/gitleakguard.git .gitleakguard
 cd .gitleakguard
 node cli.js init
 ```
@@ -97,13 +99,13 @@ node cli.js init
 
 ```bash
 # Doar hook-ul (fără skills AI editors)
-curl -fsSL https://raw.githubusercontent.com/podut/gitleakguard/main/install.sh | sh -s -- --hook-only
+curl -fsSL https://raw.githubusercontent.com/podutpetru/gitleakguard/main/install.sh | sh -s -- --hook-only
 
 # Fără skills globale (Claude, Cursor, Gemini CLI)
-curl -fsSL https://raw.githubusercontent.com/podut/gitleakguard/main/install.sh | sh -s -- --no-editor-skills
+curl -fsSL https://raw.githubusercontent.com/podutpetru/gitleakguard/main/install.sh | sh -s -- --no-editor-skills
 
 # Windows — doar hook
-irm https://raw.githubusercontent.com/podut/gitleakguard/main/install.ps1 | iex -HookOnly
+irm https://raw.githubusercontent.com/podutpetru/gitleakguard/main/install.ps1 | iex -HookOnly
 ```
 
 ---
@@ -168,18 +170,36 @@ To bypass (not recommended): LEAKGUARD_BYPASS=1 git commit ...
 
 ## Docker
 
+```bash
+# Pull direct de pe Docker Hub
+docker pull podutpetru/gitleakguard
+```
+
+### Comenzi rapide
+
+```bash
+# Scan staged files
+docker run --rm -v "$(pwd):/repo" podutpetru/gitleakguard scan
+
+# Scan git history
+docker run --rm -v "$(pwd):/repo" podutpetru/gitleakguard history
+
+# Init (instalează hook în repo-ul montat)
+docker run --rm -v "$(pwd):/repo" podutpetru/gitleakguard init
+```
+
 ### Build local
 
 ```bash
 docker build -t gitleakguard .
 ```
 
-### Folosire în CI/CD (GitHub Actions)
+### CI/CD — GitHub Actions
 
 ```yaml
 - name: Scan for secrets
   run: |
-    docker run --rm -v "${{ github.workspace }}:/repo" podut/gitleakguard scan
+    docker run --rm -v "${{ github.workspace }}:/repo" podutpetru/gitleakguard scan
 ```
 
 ### docker-compose.yml
@@ -187,7 +207,7 @@ docker build -t gitleakguard .
 ```yaml
 services:
   gitleakguard:
-    image: podut/gitleakguard
+    image: podutpetru/gitleakguard
     volumes:
       - .:/repo
     command: scan
@@ -200,12 +220,12 @@ services:
 Cel mai simplu mod de a instala skill-ul în orice editor AI compatibil:
 
 ```bash
-npx skills add podut/gitleakguard
+npx skills add podutpetru/gitleakguard
 ```
 
 Sau explicit:
 ```bash
-npx skills add podut/gitleakguard --skill gitleakguard
+npx skills add podutpetru/gitleakguard --skill gitleakguard
 ```
 
 Skill-ul se instalează automat în directorul potrivit pentru editorul detectat.
@@ -236,7 +256,7 @@ Activează slash command-ul `/gitleakguard` cu 4 moduri:
 
 ```bash
 mkdir -p ~/.claude/commands
-curl -fsSL https://raw.githubusercontent.com/podut/gitleakguard/main/.claude/commands/gitkeeper.md \
+curl -fsSL https://raw.githubusercontent.com/podutpetru/gitleakguard/main/.claude/commands/gitkeeper.md \
   > ~/.claude/commands/gitleakguard.md
 ```
 
@@ -246,14 +266,14 @@ Utilizare: `/gitleakguard scan`, `/gitleakguard fix`, `/gitleakguard history`
 
 ```bash
 mkdir -p .cursor/rules
-curl -fsSL https://raw.githubusercontent.com/podut/gitleakguard/main/templates/cursor-rule.mdc \
+curl -fsSL https://raw.githubusercontent.com/podutpetru/gitleakguard/main/templates/cursor-rule.mdc \
   > .cursor/rules/gitleakguard.mdc
 ```
 
 ### Gemini CLI / Antigravity
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/podut/gitleakguard/main/templates/GEMINI.md >> GEMINI.md
+curl -fsSL https://raw.githubusercontent.com/podutpetru/gitleakguard/main/templates/GEMINI.md >> GEMINI.md
 ```
 
 ### VSCode
