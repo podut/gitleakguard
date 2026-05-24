@@ -57,15 +57,18 @@ function showHelp() {
   console.log(`  ${CYAN}skill add --all${RESET}        Install all skills\n`);
 
   console.log(`${BOLD}MCP commands:${RESET}`);
-  console.log(`  ${CYAN}mcp setup${RESET}              Add MCP server to Claude Code (global)`);
-  console.log(`  ${CYAN}mcp list${RESET}               List available MCP tools\n`);
+  console.log(`  ${CYAN}mcp setup${RESET}                      Add full MCP server to Claude Code`);
+  console.log(`  ${CYAN}mcp list${RESET}                       List all MCP tools and skill groups`);
+  console.log(`  ${CYAN}mcp add <skills>${RESET}               Add specific tools locally`);
+  console.log(`  ${CYAN}mcp add <skills> --docker [path]${RESET} Add tools via Docker (all tools installed)\n`);
 
   console.log(`${BOLD}Examples:${RESET}`);
-  console.log(`  ${DIM}npx gitleakguard init${RESET}`);
-  console.log(`  ${DIM}npx gitleakguard skill add sonarqube${RESET}`);
-  console.log(`  ${DIM}npx gitleakguard skill add sonarqube,zap,trivy${RESET}`);
-  console.log(`  ${DIM}npx gitleakguard skill add --all${RESET}`);
-  console.log(`  ${DIM}npx gitleakguard mcp setup${RESET}\n`);
+  console.log(`  ${DIM}npx gitleakguard mcp setup${RESET}`);
+  console.log(`  ${DIM}npx gitleakguard mcp add trivy${RESET}`);
+  console.log(`  ${DIM}npx gitleakguard mcp add trivy,semgrep,sonarqube --docker${RESET}`);
+  console.log(`  ${DIM}npx gitleakguard mcp add zap --docker C:/Projects/myapp${RESET}`);
+  console.log(`  ${DIM}npx gitleakguard skill add sonarqube,zap${RESET}`);
+  console.log(`  ${DIM}npx gitleakguard skill add --all${RESET}\n`);
 }
 
 // ── skill ──────────────────────────────────────────────
@@ -112,26 +115,58 @@ function cmdSkill(sub, args) {
 
 // ── mcp ───────────────────────────────────────────────
 
-function cmdMcp(sub) {
-  const MCP_TOOLS = [
-    { name: "scan_staged",           desc: "Scan git staged files for secrets" },
-    { name: "scan_file",             desc: "Scan a specific file for secrets" },
-    { name: "scan_directory",        desc: "Scan all files in a directory" },
-    { name: "scan_history",          desc: "Scan git commit history for secrets" },
-    { name: "sonarqube_issues",      desc: "Fetch open issues from SonarQube/SonarCloud API" },
-    { name: "sonarqube_quality_gate",desc: "Check SonarQube quality gate status" },
-    { name: "sonarqube_scan",        desc: "Run sonar-scanner CLI on a project" },
-    { name: "zap_scan",              desc: "Trigger OWASP ZAP spider + active scan" },
-    { name: "zap_alerts",            desc: "Get ZAP security alerts by risk level" },
-    { name: "zap_start_info",        desc: "Show ZAP docker start command + check if running" },
-  ];
+// skill name → MCP tool names mapping
+const SKILL_TO_TOOLS = {
+  gitleakguard: ["scan_staged", "scan_file", "scan_directory", "scan_history"],
+  sonarqube:    ["sonarqube_scan", "sonarqube_issues", "sonarqube_quality_gate"],
+  trivy:        ["trivy_scan"],
+  semgrep:      ["semgrep_scan"],
+  njsscan:      ["njsscan_scan"],
+  retire:       ["retire_scan"],
+  zap:          ["zap_start_info", "zap_scan", "zap_alerts"],
+};
 
+const MCP_TOOLS = [
+  { name: "scan_staged",            desc: "Scan git staged files for secrets" },
+  { name: "scan_file",              desc: "Scan a specific file for secrets" },
+  { name: "scan_directory",         desc: "Scan all files in a directory" },
+  { name: "scan_history",           desc: "Scan git commit history for secrets" },
+  { name: "sonarqube_scan",         desc: "Run sonar-scanner CLI on a project" },
+  { name: "sonarqube_issues",       desc: "Fetch open issues from SonarQube/SonarCloud API" },
+  { name: "sonarqube_quality_gate", desc: "Check SonarQube quality gate status" },
+  { name: "trivy_scan",             desc: "Run Trivy vulnerability scanner" },
+  { name: "semgrep_scan",           desc: "Run Semgrep SAST with security rules" },
+  { name: "njsscan_scan",           desc: "Run njsscan on Node.js/JS/TS files" },
+  { name: "retire_scan",            desc: "Scan npm deps for CVEs (RetireJS)" },
+  { name: "zap_start_info",         desc: "Show ZAP docker start command + check if running" },
+  { name: "zap_scan",               desc: "Trigger OWASP ZAP spider + active scan" },
+  { name: "zap_alerts",             desc: "Get ZAP security alerts by risk level" },
+];
+
+function resolveToolNames(input) {
+  const expanded = new Set();
+  for (const raw of input.split(",").map(s => s.trim()).filter(Boolean)) {
+    if (SKILL_TO_TOOLS[raw]) {
+      SKILL_TO_TOOLS[raw].forEach(t => expanded.add(t));
+    } else if (MCP_TOOLS.find(t => t.name === raw)) {
+      expanded.add(raw);
+    } else {
+      warn(`Unknown skill/tool: "${raw}". Available: ${Object.keys(SKILL_TO_TOOLS).join(", ")}`);
+    }
+  }
+  return [...expanded];
+}
+
+function cmdMcp(sub, args) {
   if (!sub || sub === "list") {
     console.log(`\n${BOLD}MCP tools (${MCP_TOOLS.length}):${RESET}\n`);
-    for (const t of MCP_TOOLS) {
+    for (const t of MCP_TOOLS)
       console.log(`  ${CYAN}${t.name.padEnd(28)}${RESET} ${t.desc}`);
-    }
-    console.log(`\nAdd to Claude Code: ${DIM}npx gitleakguard mcp setup${RESET}\n`);
+    console.log(`\n${BOLD}Skill groups:${RESET}`);
+    for (const [skill, tools] of Object.entries(SKILL_TO_TOOLS))
+      console.log(`  ${CYAN}${skill.padEnd(16)}${RESET} ${tools.join(", ")}`);
+    console.log(`\nSetup: ${DIM}npx gitleakguard mcp setup${RESET}`);
+    console.log(`Docker: ${DIM}npx gitleakguard mcp add trivy,semgrep --docker /path/to/repo${RESET}\n`);
     return;
   }
 
@@ -139,16 +174,12 @@ function cmdMcp(sub) {
     const serverPath = path.join(__dirname, "mcp-server.mjs").replace(/\\/g, "/");
     let claudeAvailable = false;
     try { execSync("claude --version", { stdio: "pipe" }); claudeAvailable = true; } catch {}
-
     if (claudeAvailable) {
       try {
         execSync(`claude mcp add --scope user gitleakguard -- node "${serverPath}"`, { stdio: "inherit" });
-        console.log(`\n${GREEN}${BOLD}✓ MCP server added to Claude Code.${RESET}`);
+        console.log(`\n${GREEN}${BOLD}✓ MCP server added to Claude Code (all ${MCP_TOOLS.length} tools).${RESET}`);
         console.log(`  Restart Claude Code to load the new tools.\n`);
-      } catch (e) {
-        warn("Claude CLI error. Adding manually...");
-        printManualMcpConfig(serverPath);
-      }
+      } catch { warn("Claude CLI error."); printManualMcpConfig(serverPath); }
     } else {
       warn("Claude CLI not found. Add manually:");
       printManualMcpConfig(serverPath);
@@ -156,10 +187,71 @@ function cmdMcp(sub) {
     return;
   }
 
-  err(`Unknown mcp subcommand: ${sub}. Try: mcp list | mcp setup`);
+  // mcp add <skills/tools> [--docker [repo-path]]
+  if (sub === "add") {
+    const input = args[0];
+    if (!input) { err('Specify tools. Example: gitleakguard mcp add trivy,semgrep --docker'); return; }
+
+    const isDocker  = args.includes("--docker");
+    const repoPath  = args.find(a => !a.startsWith("--") && a !== input) || process.cwd();
+    const toolNames = input === "--all"
+      ? MCP_TOOLS.map(t => t.name)
+      : resolveToolNames(input);
+
+    if (!toolNames.length) return;
+
+    const serverPath = path.join(__dirname, "mcp-server.mjs").replace(/\\/g, "/");
+    const mcpName    = `gitleakguard-${input.replace(/[^a-z0-9]/gi, "-")}`;
+    const enabledEnv = `ENABLED_TOOLS=${toolNames.join(",")}`;
+
+    let claudeAvailable = false;
+    try { execSync("claude --version", { stdio: "pipe" }); claudeAvailable = true; } catch {}
+
+    if (isDocker) {
+      const repoAbs = path.resolve(repoPath).replace(/\\/g, "/");
+      const dockerCmd = [
+        "docker", "run", "-i", "--rm",
+        "-v", `${repoAbs}:/repo`,
+        "-e", enabledEnv,
+        "--entrypoint", "gitleakguard-mcp",
+        "podutpetru/gitleakguard:latest",
+      ];
+      info(`Adding Docker MCP server "${mcpName}" with tools: ${toolNames.join(", ")}`);
+      if (claudeAvailable) {
+        try {
+          execSync(`claude mcp add --scope user ${mcpName} -- ${dockerCmd.join(" ")}`, { stdio: "inherit" });
+          console.log(`\n${GREEN}${BOLD}✓ Docker MCP server "${mcpName}" added to Claude Code.${RESET}`);
+          console.log(`  Tools: ${toolNames.join(", ")}`);
+          console.log(`  Repo mounted from: ${repoAbs}\n`);
+        } catch { warn("Claude CLI error."); printDockerConfig(mcpName, dockerCmd); }
+      } else {
+        printDockerConfig(mcpName, dockerCmd);
+      }
+    } else {
+      info(`Adding local MCP server "${mcpName}" with tools: ${toolNames.join(", ")}`);
+      if (claudeAvailable) {
+        try {
+          execSync(`claude mcp add --scope user ${mcpName} -- node "${serverPath}"`, { stdio: "inherit" });
+          console.log(`\n${GREEN}${BOLD}✓ MCP server "${mcpName}" added.${RESET}`);
+          console.log(`  Set env var to limit tools: ${CYAN}${enabledEnv}${RESET}`);
+          console.log(`  Or update ~/.claude.json to add the env property.\n`);
+        } catch { warn("Claude CLI error."); printManualMcpConfig(serverPath); }
+      } else {
+        printManualMcpConfig(serverPath, toolNames);
+      }
+    }
+    return;
+  }
+
+  err(`Unknown mcp subcommand: ${sub}. Try: mcp list | mcp setup | mcp add <tools> [--docker]`);
 }
 
-function printManualMcpConfig(serverPath) {
+function printDockerConfig(mcpName, dockerCmd) {
+  console.log(`\nAdd to ~/.claude.json:\n`);
+  console.log(`${DIM}  "${mcpName}": { "command": "${dockerCmd[0]}", "args": ${JSON.stringify(dockerCmd.slice(1))} }${RESET}\n`);
+}
+
+function printManualMcpConfig(serverPath, tools) {
   console.log(`\nAdd to your Claude Code config (~/.claude.json):\n`);
   console.log(`${DIM}{
   "mcpServers": {
@@ -188,8 +280,8 @@ if (!cmd || cmd === "help" || cmd === "--help" || cmd === "-h") {
   process.exit(0);
 }
 
-if (cmd === "skill") { cmdSkill(sub, rest); process.exit(0); }
-if (cmd === "mcp")   { cmdMcp(sub);         process.exit(0); }
+if (cmd === "skill") { cmdSkill(sub, rest);      process.exit(0); }
+if (cmd === "mcp")   { cmdMcp(sub, rest);        process.exit(0); }
 
 const CORE = {
   init:    "setup/init.js",
