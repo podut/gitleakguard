@@ -135,9 +135,59 @@ async function setupKeeperIntegration() {
   }
 }
 
+function installSkillsGlobally() {
+  step("Installing security skills globally for AI editors (Antigravity, Cursor, Claude)");
+  const skillsDir = path.resolve(__dirname, "../skills");
+  if (!fs.existsSync(skillsDir)) {
+    warn("Skills directory not found in package. Skipping.");
+    return;
+  }
+
+  const skills = fs.readdirSync(skillsDir).filter(d =>
+    fs.existsSync(path.join(skillsDir, d, "SKILL.md"))
+  );
+
+  let count = 0;
+  for (const s of skills) {
+    const srcDir = path.join(skillsDir, s);
+    const destDir = path.join(os.homedir(), ".agents", "skills", s);
+    
+    try {
+      fs.mkdirSync(destDir, { recursive: true });
+      const files = fs.readdirSync(srcDir);
+      for (const file of files) {
+        fs.copyFileSync(path.join(srcDir, file), path.join(destDir, file));
+      }
+      // Legacy name.md file copy
+      const legacyDest = path.join(os.homedir(), ".agents", "skills", `${s}.md`);
+      fs.copyFileSync(path.join(srcDir, "SKILL.md"), legacyDest);
+      count++;
+    } catch (e) {
+      warn(`Failed to install skill ${s}: ${e.message}`);
+    }
+  }
+
+  if (count > 0) {
+    ok(`Installed ${count} skills globally to ~/.agents/skills/ (Antigravity & Cursor)`);
+  }
+
+  // Claude Code skill copy
+  try {
+    const claudeDest = path.join(os.homedir(), ".claude", "commands");
+    fs.mkdirSync(claudeDest, { recursive: true });
+    fs.copyFileSync(
+      path.resolve(__dirname, "../.claude/commands/gitleakguard.md"),
+      path.join(claudeDest, "gitleakguard.md")
+    );
+    ok("Claude Code skill installed to ~/.claude/commands/gitleakguard.md");
+  } catch (e) {
+    warn(`Could not install Claude Code skill: ${e.message}`);
+  }
+}
+
 async function main() {
   console.log(`\n${BOLD}${CYAN}  gitleakguard Setup${RESET}\n`);
-  console.log("  Securing your commits in 4 steps...\n");
+  console.log("  Securing your commits and setting up AI skills...\n");
 
   if (!isGitRepo()) {
     err("Not a git repository. Run: git init");
@@ -154,6 +204,9 @@ async function main() {
   createEnvTemplate();
 
   await setupKeeperIntegration();
+
+  // Install skills globally for all editors automatically during init
+  installSkillsGlobally();
 
   rl.close();
   console.log(`\n${GREEN}${BOLD}  ✓ gitleakguard is active.${RESET}`);

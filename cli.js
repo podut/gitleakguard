@@ -29,15 +29,24 @@ function availableSkills() {
 }
 
 function installSkill(name) {
-  const src = path.join(SKILLS_DIR, name, "SKILL.md");
-  if (!fs.existsSync(src)) {
+  const srcDir = path.join(SKILLS_DIR, name);
+  if (!fs.existsSync(srcDir)) {
     err(`Skill "${name}" not found. Available: ${availableSkills().join(", ")}`);
     return false;
   }
-  const dest = path.join(os.homedir(), ".agents", "skills");
-  fs.mkdirSync(dest, { recursive: true });
-  fs.copyFileSync(src, path.join(dest, `${name}.md`));
-  ok(`Skill "${name}" installed → ~/.agents/skills/${name}.md`);
+  const destDir = path.join(os.homedir(), ".agents", "skills", name);
+  fs.mkdirSync(destDir, { recursive: true });
+
+  const files = fs.readdirSync(srcDir);
+  for (const file of files) {
+    fs.copyFileSync(path.join(srcDir, file), path.join(destDir, file));
+  }
+
+  // Legacy file copy for older version support
+  const legacyDest = path.join(os.homedir(), ".agents", "skills", `${name}.md`);
+  fs.copyFileSync(path.join(srcDir, "SKILL.md"), legacyDest);
+
+  ok(`Skill "${name}" installed → ~/.agents/skills/${name}/`);
   return true;
 }
 
