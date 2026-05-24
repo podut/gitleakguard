@@ -136,7 +136,7 @@ async function setupKeeperIntegration() {
 }
 
 function installSkillsGlobally() {
-  step("Installing security skills globally for AI editors (Antigravity, Cursor, Claude)");
+  step("Installing security skills globally for AI editors (Antigravity, Cursor, Gemini, Claude)");
   const skillsDir = path.resolve(__dirname, "../skills");
   if (!fs.existsSync(skillsDir)) {
     warn("Skills directory not found in package. Skipping.");
@@ -147,12 +147,17 @@ function installSkillsGlobally() {
     fs.existsSync(path.join(skillsDir, d, "SKILL.md"))
   );
 
-  let count = 0;
+  let agentsCount = 0;
+  let geminiCount = 0;
+  let claudeCount = 0;
+
   for (const s of skills) {
     const srcDir = path.join(skillsDir, s);
-    const destDir = path.join(os.homedir(), ".agents", "skills", s);
-    
+    const skillMdPath = path.join(srcDir, "SKILL.md");
+
+    // 1. Antigravity & Cursor (~/.agents/skills/<skill>/)
     try {
+      const destDir = path.join(os.homedir(), ".agents", "skills", s);
       fs.mkdirSync(destDir, { recursive: true });
       const files = fs.readdirSync(srcDir);
       for (const file of files) {
@@ -160,28 +165,53 @@ function installSkillsGlobally() {
       }
       // Legacy name.md file copy
       const legacyDest = path.join(os.homedir(), ".agents", "skills", `${s}.md`);
-      fs.copyFileSync(path.join(srcDir, "SKILL.md"), legacyDest);
-      count++;
+      fs.copyFileSync(skillMdPath, legacyDest);
+      agentsCount++;
     } catch (e) {
-      warn(`Failed to install skill ${s}: ${e.message}`);
+      warn(`Failed to install skill ${s} to ~/.agents/skills: ${e.message}`);
+    }
+
+    // 2. Gemini CLI (~/.gemini/skills/<skill>/)
+    try {
+      const destDir = path.join(os.homedir(), ".gemini", "skills", s);
+      fs.mkdirSync(destDir, { recursive: true });
+      const files = fs.readdirSync(srcDir);
+      for (const file of files) {
+        fs.copyFileSync(path.join(srcDir, file), path.join(destDir, file));
+      }
+      // Legacy name.md file copy
+      const legacyDest = path.join(os.homedir(), ".gemini", "skills", `${s}.md`);
+      fs.copyFileSync(skillMdPath, legacyDest);
+      geminiCount++;
+    } catch (e) {
+      warn(`Failed to install skill ${s} to ~/.gemini/skills: ${e.message}`);
+    }
+
+    // 3. Claude Code (~/.claude/commands/<skill>.md)
+    try {
+      const claudeDest = path.join(os.homedir(), ".claude", "commands");
+      fs.mkdirSync(claudeDest, { recursive: true });
+      // Special case for gitleakguard - we want the special command version if available
+      const gitleakguardSpecial = path.resolve(__dirname, "../.claude/commands/gitleakguard.md");
+      if (s === "gitleakguard" && fs.existsSync(gitleakguardSpecial)) {
+        fs.copyFileSync(gitleakguardSpecial, path.join(claudeDest, "gitleakguard.md"));
+      } else {
+        fs.copyFileSync(skillMdPath, path.join(claudeDest, `${s}.md`));
+      }
+      claudeCount++;
+    } catch (e) {
+      warn(`Failed to install skill ${s} to ~/.claude/commands: ${e.message}`);
     }
   }
 
-  if (count > 0) {
-    ok(`Installed ${count} skills globally to ~/.agents/skills/ (Antigravity & Cursor)`);
+  if (agentsCount > 0) {
+    ok(`Installed ${agentsCount} skills globally to ~/.agents/skills/ (Antigravity & Cursor)`);
   }
-
-  // Claude Code skill copy
-  try {
-    const claudeDest = path.join(os.homedir(), ".claude", "commands");
-    fs.mkdirSync(claudeDest, { recursive: true });
-    fs.copyFileSync(
-      path.resolve(__dirname, "../.claude/commands/gitleakguard.md"),
-      path.join(claudeDest, "gitleakguard.md")
-    );
-    ok("Claude Code skill installed to ~/.claude/commands/gitleakguard.md");
-  } catch (e) {
-    warn(`Could not install Claude Code skill: ${e.message}`);
+  if (geminiCount > 0) {
+    ok(`Installed ${geminiCount} skills globally to ~/.gemini/skills/ (Gemini)`);
+  }
+  if (claudeCount > 0) {
+    ok(`Installed ${claudeCount} skills globally to ~/.claude/commands/ (Claude Code)`);
   }
 }
 

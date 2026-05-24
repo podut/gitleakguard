@@ -10,7 +10,8 @@
   "scripts": {
     "init": "node setup/init.js",
     "scan": "node hooks/pre-commit",
-    "history": "node setup/scan-history.js"
+    "history": "node setup/scan-history.js",
+    "postinstall": "node setup/postinstall.js"
   },
   "keywords": [
     "git",
