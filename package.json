@@ -1,6 +1,6 @@
 {
   "name": "gitleakguard",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "One-command Git secret protection — blocks commits with exposed credentials",
   "main": "cli.js",
   "bin": {
