@@ -255,11 +255,22 @@ Utilizare: `/gitleakguard scan`, `/gitleakguard fix`, `/gitleakguard history`
 
 ### Cursor
 
+**Instalare skill** (slash command `/gitkeeper` în Agent mode):
+```bash
+npx skills add podut/gitleakguard
+```
+
+Sau manual — regulă always-on per proiect:
 ```bash
 mkdir -p .cursor/rules
 curl -fsSL https://raw.githubusercontent.com/podutpetru/gitleakguard/main/templates/cursor-rule.mdc \
   > .cursor/rules/gitleakguard.mdc
 ```
+
+**Utilizare:**
+- Deschide Cursor → panel Agent (`Ctrl+L`) → mod **Agent**
+- Tastează `/gitkeeper` → apar comenzile în autocomplete
+- Regula `alwaysApply: true` e activă automat — Cursor nu va scrie niciodată credențiale hardcodate
 
 ### Gemini CLI / Antigravity
 
@@ -269,19 +280,19 @@ npm install -g @google/gemini-cli
 gemini auth login
 ```
 
-**Instalare skill gitleakguard:**
+**Instalare skill:**
 ```bash
 npx skills add podut/gitleakguard
 ```
 
 Sau manual — adaugă regulile în proiect:
 ```bash
-curl -fsSL https://raw.githubusercontent.com/podut/gitleakguard/main/templates/GEMINI.md >> GEMINI.md
+curl -fsSL https://raw.githubusercontent.com/podutpetru/gitleakguard/main/templates/GEMINI.md >> GEMINI.md
 ```
 
-**Utilizare** — deschide Gemini CLI și tastează:
-```
-gemini
+**Utilizare:**
+```bash
+gemini          # deschide Gemini CLI
 /gitkeeper scan
 /gitkeeper history
 /gitkeeper fix
