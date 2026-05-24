@@ -1,0 +1,134 @@
+#!/usr/bin/env node
+/**
+ * GitKeeper pre-commit hook — self-contained, no external dependencies
+ * Install: node setup/init.js
+ * Manual:  cp hooks/pre-commit .git/hooks/pre-commit && chmod +x .git/hooks/pre-commit
+ */
+
+const { execSync } = require("child_process");
+
+const RED    = "\x1b[31m";
+const YELLOW = "\x1b[33m";
+const GREEN  = "\x1b[32m";
+const CYAN   = "\x1b[36m";
+const RESET  = "\x1b[0m";
+const BOLD   = "\x1b[1m";
+
+// --- Secret patterns (self-contained, no require) ---
+const PATTERNS = [
+  { name: "AWS Access Key",      regex: /AKIA[0-9A-Z]{16}/g },
+  { name: "GitHub Token",        regex: /ghp_[A-Za-z0-9]{36}|github_pat_[A-Za-z0-9_]{82}/g },
+  { name: "OpenAI API Key",      regex: /sk-[A-Za-z0-9]{48}|sk-proj-[A-Za-z0-9_-]{40,}/g },
+  { name: "Anthropic API Key",   regex: /sk-ant-api\d{2}-[A-Za-z0-9_-]{40,}/g },
+  { name: "Google API Key",      regex: /AIza[0-9A-Za-z_-]{35}/g },
+  { name: "Stripe Live Key",     regex: /sk_live_[A-Za-z0-9]{24,}/g },
+  { name: "Stripe Test Key",     regex: /sk_test_[A-Za-z0-9]{24,}/g },
+  { name: "Slack Bot Token",     regex: /xoxb-[0-9]{11,13}-[0-9]{11,13}-[a-zA-Z0-9]{24}/g },
+  { name: "Firebase Config",     regex: /AAAA[A-Za-z0-9_-]{7}:[A-Za-z0-9_-]{140}/g },
+  { name: "Private Key Block",   regex: /-----BEGIN (RSA |EC |DSA |OPENSSH )?PRIVATE KEY-----/g },
+  { name: "JWT Token",           regex: /eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}/g },
+  { name: "Credentials in URL",  regex: /[a-z][a-z0-9+.-]*:\/\/[^:@\s/]+:[^@\s]{3,}@[^\s]+/g },
+  { name: "Generic Secret Var",  regex: /(?:secret|password|passwd|api_key|apikey|auth_token|access_token)\s*[=:]\s*['"][^'"]{8,}['"]/gi },
+];
+
+const IGNORE_PATHS = [
+  /node_modules\//,
+  /\.git\//,
+  /dist\//,
+  /build\//,
+  /\.env\.example$/,
+  /\.env\.template$/,
+  /\.env\.sample$/,
+  /package-lock\.json$/,
+  /yarn\.lock$/,
+  /\.min\.js$/,
+];
+
+function shouldIgnore(filePath) {
+  return IGNORE_PATHS.some((p) => p.test(filePath));
+}
+
+function scanContent(content, filePath) {
+  const findings = [];
+  const lines = content.split("\n");
+  for (const { name, regex } of PATTERNS) {
+    regex.lastIndex = 0;
+    let match;
+    while ((match = regex.exec(content)) !== null) {
+      const lineNumber = content.slice(0, match.index).split("\n").length;
+      const lineContent = lines[lineNumber - 1]?.trim() ?? "";
+      findings.push({
+        rule: name,
+        file: filePath,
+        line: lineNumber,
+        preview: lineContent.length > 80 ? lineContent.slice(0, 77) + "..." : lineContent,
+      });
+    }
+  }
+  return findings;
+}
+
+// --- Main ---
+console.log(`${CYAN}GitKeeper${RESET} — scanning staged files for secrets...`);
+
+if (process.env.GITKEEPER_BYPASS === "1") {
+  console.log(`${YELLOW}⚠  Bypass active. Skipping scan.${RESET}`);
+  process.exit(0);
+}
+
+let stagedFiles;
+try {
+  stagedFiles = execSync("git diff --cached --name-only --diff-filter=ACM", {
+    encoding: "utf8",
+    stdio: "pipe",
+  })
+    .trim()
+    .split("\n")
+    .filter(Boolean);
+} catch {
+  console.error("Could not get staged files. Is this a git repo?");
+  process.exit(1);
+}
+
+if (stagedFiles.length === 0) {
+  console.log(`${GREEN}✓ No staged files.${RESET}`);
+  process.exit(0);
+}
+
+const allFindings = [];
+
+for (const file of stagedFiles) {
+  if (shouldIgnore(file)) continue;
+  let content;
+  try {
+    content = execSync(`git show :${file}`, { encoding: "utf8", stdio: "pipe" });
+  } catch {
+    continue;
+  }
+  allFindings.push(...scanContent(content, file));
+}
+
+if (allFindings.length === 0) {
+  console.log(`${GREEN}✓ No secrets detected. Proceeding.${RESET}`);
+  process.exit(0);
+}
+
+console.log(`\n${RED}${BOLD}✖  Commit blocked — ${allFindings.length} secret(s) detected:${RESET}\n`);
+
+for (const f of allFindings) {
+  console.log(`  ${RED}●${RESET} ${BOLD}${f.rule}${RESET}`);
+  console.log(`    File : ${f.file}:${f.line}`);
+  console.log(`    Line : ${YELLOW}${f.preview}${RESET}\n`);
+}
+
+console.log(`${BOLD}How to fix:${RESET}`);
+console.log(`  1. Move the secret to ${CYAN}.env${RESET}`);
+console.log(`  2. Ensure ${CYAN}.env${RESET} is in ${CYAN}.gitignore${RESET}`);
+console.log(`  3. Replace in code with ${CYAN}process.env.YOUR_KEY${RESET}`);
+console.log(`  4. Revoke and rotate the exposed credential\n`);
+console.log(`${BOLD}AI prompt (paste in Cursor / Claude / Gemini):${RESET}`);
+console.log(`${CYAN}  "Find all hardcoded credentials and move them to .env,`);
+console.log(`   replacing each with process.env.VARIABLE_NAME"${RESET}\n`);
+console.log(`Bypass (not recommended): ${YELLOW}GITKEEPER_BYPASS=1 git commit ...${RESET}\n`);
+
+process.exit(1);

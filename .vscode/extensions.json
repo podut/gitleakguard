@@ -1,0 +1,10 @@
+{
+  "recommendations": [
+    "usernamehw.errorlens",
+    "streetsidesoftware.code-spell-checker",
+    "github.vscode-pull-request-github"
+  ],
+  "comments": {
+    "gitkeeper": "For secret scanning in the editor, pair with the pre-commit hook. Run 'GitKeeper: Setup' from Tasks (Ctrl+Shift+P → Run Task)."
+  }
+}

@@ -1,0 +1,38 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "GitKeeper: Setup",
+      "type": "shell",
+      "command": "node ${workspaceFolder}/setup/init.js",
+      "group": "build",
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "GitKeeper: Scan Staged Files",
+      "type": "shell",
+      "command": "node ${workspaceFolder}/hooks/pre-commit",
+      "group": "test",
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "GitKeeper: Scan Git History",
+      "type": "shell",
+      "command": "node ${workspaceFolder}/setup/scan-history.js",
+      "group": "test",
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    }
+  ]
+}

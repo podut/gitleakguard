@@ -1,0 +1,19 @@
+{
+  "name": "gitkeeper",
+  "version": "0.1.0",
+  "description": "One-command Git secret protection with Keeper integration",
+  "main": "cli.js",
+  "bin": {
+    "gitkeeper": "./cli.js"
+  },
+  "scripts": {
+    "init":    "node setup/init.js",
+    "scan":    "node hooks/pre-commit",
+    "history": "node setup/scan-history.js"
+  },
+  "keywords": ["git", "security", "secrets", "keeper", "pre-commit", "credentials"],
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
