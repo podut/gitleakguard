@@ -168,33 +168,14 @@ To bypass (not recommended): LEAKGUARD_BYPASS=1 git commit ...
 
 ---
 
-## Docker
+## Docker — pentru CI/CD
 
-```bash
-# Pull direct de pe Docker Hub
-docker pull podutpetru/gitleakguard
-```
+Imaginea Docker e utilă în pipeline-uri automate unde nu vrei să instalezi Node.js.
+Nu e un MCP server — pentru integrarea cu AI editors folosește skill-ul de mai jos.
 
-### Comenzi rapide
+Image: [`podutpetru/gitleakguard`](https://hub.docker.com/r/podutpetru/gitleakguard)
 
-```bash
-# Scan staged files
-docker run --rm -v "$(pwd):/repo" podutpetru/gitleakguard scan
-
-# Scan git history
-docker run --rm -v "$(pwd):/repo" podutpetru/gitleakguard history
-
-# Init (instalează hook în repo-ul montat)
-docker run --rm -v "$(pwd):/repo" podutpetru/gitleakguard init
-```
-
-### Build local
-
-```bash
-docker build -t gitleakguard .
-```
-
-### CI/CD — GitHub Actions
+### GitHub Actions
 
 ```yaml
 - name: Scan for secrets
@@ -202,15 +183,25 @@ docker build -t gitleakguard .
     docker run --rm -v "${{ github.workspace }}:/repo" podutpetru/gitleakguard scan
 ```
 
-### docker-compose.yml
+### GitLab CI
 
 ```yaml
-services:
-  gitleakguard:
-    image: podutpetru/gitleakguard
-    volumes:
-      - .:/repo
-    command: scan
+scan-secrets:
+  image: podutpetru/gitleakguard
+  script:
+    - gitleakguard scan
+  variables:
+    GIT_STRATEGY: fetch
+```
+
+### Linie de comandă
+
+```bash
+# Scan staged files
+docker run --rm -v "$(pwd):/repo" podutpetru/gitleakguard scan
+
+# Scan git history
+docker run --rm -v "$(pwd):/repo" podutpetru/gitleakguard history
 ```
 
 ---
