@@ -23,9 +23,9 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/podut/leakguard.git"
+    "url": "git+https://github.com/podut/gitleakguard.git"
   },
-  "homepage": "https://github.com/podut/leakguard",
+  "homepage": "https://github.com/podut/gitleakguard",
   "engines": {
     "node": ">=18.0.0"
   }

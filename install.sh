@@ -11,7 +11,7 @@
 
 set -e
 
-REPO="https://raw.githubusercontent.com/podut/leakguard/main"
+REPO="https://raw.githubusercontent.com/podut/gitleakguard/main"
 HOOK_URL="$REPO/hooks/pre-commit"
 
 RED='\033[0;31m'

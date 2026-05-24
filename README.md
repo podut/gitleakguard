@@ -1,13 +1,13 @@
-# leakguard
+# gitleakguard
 
 **One-command Git secret protection for vibe coders.**
 
 Protejează-ți commit-urile de credențiale expuse (API keys, tokens, parole) cu un hook pre-commit automat și integrare opțională cu Keeper Secret Manager.
 
 ```
-$ node cli.js init
+$ npx gitleakguard init
 
-  leakguard Setup
+  gitleakguard Setup
 
 ▶ Installing pre-commit hook
 ✓ Pre-commit hook installed → .git/hooks/pre-commit
@@ -18,7 +18,7 @@ $ node cli.js init
 ▶ Creating .env template
 ✓ .env.example created
 
-✓ leakguard is active. Your next commit will be scanned automatically.
+✓ gitleakguard is active. Your next commit will be scanned automatically.
 ```
 
 ---
@@ -39,33 +39,44 @@ $ node cli.js init
 ### macOS / Linux / WSL
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/podut/leakguard/main/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/podut/gitleakguard/main/install.sh | sh
 ```
 
 ### Windows (PowerShell)
 
 ```powershell
-irm https://raw.githubusercontent.com/podut/leakguard/main/install.ps1 | iex
+irm https://raw.githubusercontent.com/podut/gitleakguard/main/install.ps1 | iex
 ```
 
-### npm (global)
+### Docker
 
 ```bash
-npm install -g leakguard
-leakguard init
+# Scanează staged files din repo-ul curent
+docker run --rm -v "$(pwd):/repo" podut/gitleakguard scan
+
+# Scanează tot istoricul git
+docker run --rm -v "$(pwd):/repo" podut/gitleakguard history
+
+# Setup (instalează hook-ul în repo-ul montat)
+docker run --rm -v "$(pwd):/repo" podut/gitleakguard init
 ```
 
-### npx (fără instalare)
+### npm / npx
 
 ```bash
-npx leakguard init
+# Fără instalare:
+npx gitleakguard init
+
+# Global:
+npm install -g gitleakguard
+gitleakguard init
 ```
 
 ### Manual (clone)
 
 ```bash
-git clone https://github.com/podut/leakguard.git .leakguard
-cd .leakguard
+git clone https://github.com/podut/gitleakguard.git .gitleakguard
+cd .gitleakguard
 node cli.js init
 ```
 
@@ -75,13 +86,13 @@ node cli.js init
 
 ```bash
 # Doar hook-ul (fără skills AI editors)
-curl -fsSL https://raw.githubusercontent.com/podut/leakguard/main/install.sh | sh -s -- --hook-only
+curl -fsSL https://raw.githubusercontent.com/podut/gitleakguard/main/install.sh | sh -s -- --hook-only
 
 # Fără skills globale (Claude, Cursor, Gemini CLI)
-curl -fsSL https://raw.githubusercontent.com/podut/leakguard/main/install.sh | sh -s -- --no-editor-skills
+curl -fsSL https://raw.githubusercontent.com/podut/gitleakguard/main/install.sh | sh -s -- --no-editor-skills
 
 # Windows — doar hook
-irm https://raw.githubusercontent.com/podut/leakguard/main/install.ps1 | iex -HookOnly
+irm https://raw.githubusercontent.com/podut/gitleakguard/main/install.ps1 | iex -HookOnly
 ```
 
 ---
@@ -89,10 +100,10 @@ irm https://raw.githubusercontent.com/podut/leakguard/main/install.ps1 | iex -Ho
 ## Comenzi
 
 ```bash
-node cli.js init      # Setup complet (hook + gitignore + Keeper opțional)
-node cli.js scan      # Scanează manual fișierele staged
-node cli.js history   # Scanează tot istoricul git pentru secrete expuse
-node cli.js help      # Afișează ajutor
+gitleakguard init      # Setup complet (hook + gitignore + Keeper opțional)
+gitleakguard scan      # Scanează manual fișierele staged
+gitleakguard history   # Scanează tot istoricul git pentru secrete expuse
+gitleakguard help      # Afișează ajutor
 ```
 
 ---
@@ -103,7 +114,7 @@ La fiecare `git commit`, hook-ul rulează automat și verifică fișierele stage
 
 ```
 $ git commit -m "add openai integration"
-leakguard — scanning staged files for secrets...
+gitleakguard — scanning staged files for secrets...
 
 ✖  Commit blocked — 1 secret(s) detected:
 
@@ -144,92 +155,84 @@ To bypass (not recommended): LEAKGUARD_BYPASS=1 git commit ...
 
 ---
 
+## Docker
+
+### Build local
+
+```bash
+docker build -t gitleakguard .
+```
+
+### Folosire în CI/CD (GitHub Actions)
+
+```yaml
+- name: Scan for secrets
+  run: |
+    docker run --rm -v "${{ github.workspace }}:/repo" podut/gitleakguard scan
+```
+
+### docker-compose.yml
+
+```yaml
+services:
+  gitleakguard:
+    image: podut/gitleakguard
+    volumes:
+      - .:/repo
+    command: scan
+```
+
+---
+
 ## Integrare în medii de dezvoltare
 
-`install.sh` / `install.ps1` instalează automat fișierele de instrucțiuni în proiect:
+`install.sh` / `install.ps1` instalează automat:
 - `CLAUDE.md` — Claude Code (activ automat)
 - `GEMINI.md` — Gemini CLI + Antigravity (activ automat)
-- `.cursor/rules/leakguard.mdc` — Cursor (alwaysApply: true)
+- `.cursor/rules/gitleakguard.mdc` — Cursor (alwaysApply: true)
 - `.vscode/tasks.json` — VSCode tasks
 
-Și global (skills invocabile cu slash commands):
-- `~/.claude/commands/leakguard.md` → `/leakguard` în Claude Code
-- `~/.cursor/skills/leakguard/` → `/leakguard` în Cursor Agent
-- Gemini CLI skill → `/leakguard` în Gemini CLI
+Și global:
+- `~/.claude/commands/gitleakguard.md` → `/gitleakguard` în Claude Code
+- `~/.cursor/skills/gitleakguard/` → `/gitleakguard` în Cursor Agent
 
 ### Claude Code
 
-**Instalare manuală skill global:**
 ```bash
 mkdir -p ~/.claude/commands
-curl -fsSL https://raw.githubusercontent.com/podut/leakguard/main/.claude/commands/gitkeeper.md \
-  > ~/.claude/commands/leakguard.md
+curl -fsSL https://raw.githubusercontent.com/podut/gitleakguard/main/.claude/commands/gitkeeper.md \
+  > ~/.claude/commands/gitleakguard.md
 ```
 
-**Utilizare:**
-```
-/leakguard init       # Setup complet
-/leakguard scan       # Scanează staged files
-/leakguard history    # Scanează istoricul
-/leakguard fix        # Ghid pentru credential leak
-```
-
----
+Utilizare: `/gitleakguard scan`, `/gitleakguard fix`, `/gitleakguard history`
 
 ### Cursor
 
-**Instalare regulă per-proiect:**
 ```bash
 mkdir -p .cursor/rules
-curl -fsSL https://raw.githubusercontent.com/podut/leakguard/main/templates/cursor-rule.mdc \
-  > .cursor/rules/leakguard.mdc
+curl -fsSL https://raw.githubusercontent.com/podut/gitleakguard/main/templates/cursor-rule.mdc \
+  > .cursor/rules/gitleakguard.mdc
 ```
 
-**Ce face regula:**
-- `alwaysApply: true` — activ în toate fișierele, tot timpul
-- Cursor nu va scrie niciodată credențiale hardcodate în cod
-- Înainte de orice commit sugerat, verifică dacă există secrete
+### Gemini CLI / Antigravity
 
----
-
-### Gemini CLI
-
-**Instalare în proiect (fișier GEMINI.md):**
 ```bash
-curl -fsSL https://raw.githubusercontent.com/podut/leakguard/main/templates/GEMINI.md \
-  >> GEMINI.md
+curl -fsSL https://raw.githubusercontent.com/podut/gitleakguard/main/templates/GEMINI.md >> GEMINI.md
 ```
-
-**Verificare:**
-```bash
-gemini "adaugă o cheie OpenAI hardcodată în cod"
-# Trebuie să refuze și să sugereze process.env
-```
-
----
 
 ### VSCode
 
-**Tasks instalate automat de `install.sh`:**
-1. `Ctrl+Shift+P` → "Tasks: Run Task"
-2. Alege una din:
-   - **leakguard: Setup** — configurare inițială
-   - **leakguard: Scan Staged Files** — scanare manuală
-   - **leakguard: Scan Git History** — scanare istorică
+Tasks instalate automat. `Ctrl+Shift+P` → Run Task → gitleakguard.
 
----
-
-### GitHub Copilot / Windsurf / Aider / Continue.dev
-
-Creează un fișier de instrucțiuni cu conținutul din `templates/CLAUDE.md`:
+### Suport pentru orice AI editor
 
 | Editor | Fișier instrucțiuni |
 |---|---|
 | Claude Code | `CLAUDE.md` |
 | Gemini CLI / Antigravity | `GEMINI.md` |
-| Cursor | `.cursor/rules/leakguard.mdc` |
+| Cursor | `.cursor/rules/gitleakguard.mdc` |
 | GitHub Copilot | `.github/copilot-instructions.md` |
-| Windsurf | `.windsurf/rules/leakguard.md` |
+| Windsurf | `.windsurf/rules/gitleakguard.md` |
 | Aider | `.aider.conf.yml` → `system-prompt:` |
 | Continue.dev | `.continuerc.json` → `systemMessage:` |
 
@@ -237,131 +240,72 @@ Creează un fișier de instrucțiuni cu conținutul din `templates/CLAUDE.md`:
 
 ## Integrare Keeper Secret Manager
 
-Keeper stochează cheile SSH în vault și le folosește pentru semnarea commit-urilor.
-
-### Prerechizituri
-1. Cont Keeper Business sau Personal cu Secrets Manager activat
-2. O aplicație KSM creată în Keeper Vault
-
-### Setup pas cu pas
-
-**1. Instalează KSM CLI:**
 ```bash
-npm install -g @keepersecurity/secrets-manager-cli
+gitleakguard init
+# → alege "y" la "Set up Keeper SSH signing?"
 ```
 
-**2. Creează aplicația în Keeper Vault:**
-- Vault → Secrets Manager → Applications → New Application
-- Dă acces la folderul cu cheile SSH
-- Generează un One-Time Token
-
-**3. Inițializează KSM:**
-```bash
-ksm init default <YOUR_ONE_TIME_TOKEN>
-```
-
-**4. Rulează setup:**
-```bash
-node cli.js init
-# → alege "y" la întrebarea despre Keeper
-```
-
-**5. Configurează Git pentru semnare SSH:**
-```bash
-git config --global gpg.format ssh
-git config --global user.signingkey "$(cat ~/.ssh/id_ed25519.pub)"
-git config --global commit.gpgsign true
-```
-
-**6. Verificare:**
-```bash
-git log --show-signature -1
-# → Good "git" signature for user@email.com
-```
+Stochează cheile SSH în Keeper Vault și le folosește pentru semnarea commit-urilor.
 
 ---
 
 ## Scanare istorică și remediere
 
-Dacă ai deja credențiale în istoricul git:
-
 ```bash
-# 1. Scanează istoricul
-node cli.js history
+# Scanează tot istoricul
+gitleakguard history
 
-# 2. Revocă imediat credențialele expuse
-
-# 3. Curăță istoricul (necesită git-filter-repo)
+# Curăță istoricul (necesită git-filter-repo)
 pip install git-filter-repo
 git filter-repo --invert-paths --path src/config.ts
-
-# 4. Force-push
 git push --force-with-lease
-
-# 5. Notifică toți colaboratorii să re-cloneze repo-ul
 ```
 
-**Dacă repo-ul e public:** presupune că secretul e deja compromis chiar dacă îl ștergi din istoric. Rotește imediat.
+**Dacă repo-ul e public:** rotește imediat orice credential găsit — ștergerea din istoric nu e suficientă.
 
 ---
 
 ## Structura proiectului
 
 ```
-leakguard/
-├── cli.js                          # Entry point: node cli.js <command>
+gitleakguard/
+├── cli.js                    # Entry point: gitleakguard <command>
 ├── package.json
-├── install.sh                      # Installer POSIX (macOS / Linux / WSL)
-├── install.ps1                     # Installer Windows (PowerShell 5.1+)
-├── scanners/
-│   └── secrets.js                  # Regex patterns pentru 15+ tipuri de credențiale
-├── hooks/
-│   └── pre-commit                  # Hook instalat în .git/hooks/pre-commit
-├── setup/
-│   ├── init.js                     # Setup interactiv one-command
-│   └── scan-history.js             # Scanner retroactiv pentru git history
-├── integrations/
-│   └── keeper.js                   # Wrapper pentru Keeper Secret Manager API
+├── Dockerfile                # Docker image
+├── install.sh                # Installer POSIX
+├── install.ps1               # Installer Windows
+├── scanners/secrets.js       # Regex patterns pentru 15+ tipuri de credențiale
+├── hooks/pre-commit          # Hook instalat în .git/hooks/pre-commit
+├── setup/init.js             # Setup interactiv one-command
+├── setup/scan-history.js     # Scanner retroactiv git history
+├── integrations/keeper.js    # Keeper Secret Manager wrapper
 ├── templates/
-│   ├── CLAUDE.md                   # Template instrucțiuni Claude Code
-│   ├── GEMINI.md                   # Template instrucțiuni Gemini CLI + Antigravity
-│   ├── cursor-rule.mdc             # Template regulă Cursor
-│   └── .env.template               # Template pentru variabile de mediu
-├── .claude/
-│   └── commands/
-│       └── gitkeeper.md            # Skill pentru Claude Code (/leakguard)
-├── .cursor/
-│   └── rules/
-│       └── gitkeeper.mdc           # Regulă Cursor (alwaysApply: true)
-└── .vscode/
-    ├── tasks.json                  # Task-uri pentru VSCode
-    └── extensions.json
+│   ├── CLAUDE.md             # Template instrucțiuni Claude Code
+│   ├── GEMINI.md             # Template instrucțiuni Gemini CLI
+│   └── cursor-rule.mdc       # Template regulă Cursor
+└── .vscode/tasks.json        # VSCode tasks
 ```
 
 ---
 
 ## FAQ
 
-**Q: Cum bypass-uiesc hook-ul pentru un commit legitim?**
+**Q: Cum bypass-uiesc hook-ul?**
 ```bash
 LEAKGUARD_BYPASS=1 git commit -m "message"
 ```
-Nu recomandat. Dacă ai un secret legitim în cod, mută-l în `.env`.
 
-**Q: Hook-ul blochează fișiere `.env.example` sau teste?**
-Nu — fișierele `.env.example`, `.env.template`, și `node_modules/` sunt excluse automat.
+**Q: Hook-ul blochează `.env.example`?**
+Nu — `.env.example`, `.env.template`, `node_modules/` sunt excluse automat.
 
 **Q: Funcționează pe Windows?**
-Da, hook-ul pre-commit este un script Node.js și rulează pe orice platformă cu Node ≥ 18.
+Da — Node.js ≥ 18 pe orice platformă. Sau folosește Docker.
 
 **Q: Pot adăuga pattern-uri proprii?**
-Da — editează `scanners/secrets.js` și adaugă în array-ul `PATTERNS`:
 ```javascript
-{ name: "My Custom Pattern", regex: /your-regex-here/g },
+// scanners/secrets.js
+{ name: "My Pattern", regex: /your-regex/g },
 ```
-
-**Q: Ce fac dacă KSM CLI nu e disponibil?**
-Hook-ul și scannerul funcționează independent de Keeper. Integrarea KSM e opțională.
 
 ---
 
