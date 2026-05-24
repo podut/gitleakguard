@@ -263,8 +263,28 @@ curl -fsSL https://raw.githubusercontent.com/podutpetru/gitleakguard/main/templa
 
 ### Gemini CLI / Antigravity
 
+**Instalare Gemini CLI** (dacă nu îl ai):
 ```bash
-curl -fsSL https://raw.githubusercontent.com/podutpetru/gitleakguard/main/templates/GEMINI.md >> GEMINI.md
+npm install -g @google/gemini-cli
+gemini auth login
+```
+
+**Instalare skill gitleakguard:**
+```bash
+npx skills add podut/gitleakguard
+```
+
+Sau manual — adaugă regulile în proiect:
+```bash
+curl -fsSL https://raw.githubusercontent.com/podut/gitleakguard/main/templates/GEMINI.md >> GEMINI.md
+```
+
+**Utilizare** — deschide Gemini CLI și tastează:
+```
+gemini
+/gitkeeper scan
+/gitkeeper history
+/gitkeeper fix
 ```
 
 ### VSCode
