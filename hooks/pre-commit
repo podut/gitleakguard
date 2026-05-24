@@ -79,9 +79,30 @@ if (process.env.GITLEAKGUARD_BYPASS === "1" || process.env.LEAKGUARD_BYPASS === 
   process.exit(0);
 }
 
+let gitCmd = "git";
+try {
+  execSync("git --version", { stdio: "ignore" });
+} catch {
+  if (process.platform === "win32") {
+    const fs = require("fs");
+    const path = require("path");
+    const commonPaths = [
+      "C:\\Program Files\\Git\\cmd\\git.exe",
+      "C:\\Program Files\\Git\\bin\\git.exe",
+      path.join(process.env.LOCALAPPDATA || "", "Programs\\Git\\cmd\\git.exe"),
+    ];
+    for (const p of commonPaths) {
+      if (fs.existsSync(p)) {
+        gitCmd = `"${p}"`;
+        break;
+      }
+    }
+  }
+}
+
 let stagedFiles;
 try {
-  stagedFiles = execSync("git diff --cached --name-only --diff-filter=ACM", {
+  stagedFiles = execSync(`${gitCmd} diff --cached --name-only --diff-filter=ACM`, {
     encoding: "utf8",
     stdio: "pipe",
   })
@@ -104,7 +125,7 @@ for (const file of stagedFiles) {
   if (shouldIgnore(file)) continue;
   let content;
   try {
-    content = execSync(`git show :${file}`, { encoding: "utf8", stdio: "pipe" });
+    content = execSync(`${gitCmd} show :${file}`, { encoding: "utf8", stdio: "pipe" });
   } catch {
     continue;
   }
