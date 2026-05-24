@@ -136,7 +136,7 @@ async function setupKeeperIntegration() {
 }
 
 function installSkillsGlobally() {
-  step("Installing security skills globally for AI editors (Antigravity, Cursor, Gemini, Claude)");
+  step("Installing security skills globally for AI editors (Antigravity, Cursor, Claude)");
   const skillsDir = path.resolve(__dirname, "../skills");
   if (!fs.existsSync(skillsDir)) {
     warn("Skills directory not found in package. Skipping.");
@@ -148,7 +148,6 @@ function installSkillsGlobally() {
   );
 
   let agentsCount = 0;
-  let geminiCount = 0;
   let claudeCount = 0;
 
   for (const s of skills) {
@@ -171,23 +170,7 @@ function installSkillsGlobally() {
       warn(`Failed to install skill ${s} to ~/.agents/skills: ${e.message}`);
     }
 
-    // 2. Gemini CLI (~/.gemini/skills/<skill>/)
-    try {
-      const destDir = path.join(os.homedir(), ".gemini", "skills", s);
-      fs.mkdirSync(destDir, { recursive: true });
-      const files = fs.readdirSync(srcDir);
-      for (const file of files) {
-        fs.copyFileSync(path.join(srcDir, file), path.join(destDir, file));
-      }
-      // Legacy name.md file copy
-      const legacyDest = path.join(os.homedir(), ".gemini", "skills", `${s}.md`);
-      fs.copyFileSync(skillMdPath, legacyDest);
-      geminiCount++;
-    } catch (e) {
-      warn(`Failed to install skill ${s} to ~/.gemini/skills: ${e.message}`);
-    }
-
-    // 3. Claude Code (~/.claude/commands/<skill>.md)
+    // 2. Claude Code (~/.claude/commands/<skill>.md)
     try {
       const claudeDest = path.join(os.homedir(), ".claude", "commands");
       fs.mkdirSync(claudeDest, { recursive: true });
@@ -206,9 +189,6 @@ function installSkillsGlobally() {
 
   if (agentsCount > 0) {
     ok(`Installed ${agentsCount} skills globally to ~/.agents/skills/ (Antigravity & Cursor)`);
-  }
-  if (geminiCount > 0) {
-    ok(`Installed ${geminiCount} skills globally to ~/.gemini/skills/ (Gemini)`);
   }
   if (claudeCount > 0) {
     ok(`Installed ${claudeCount} skills globally to ~/.claude/commands/ (Claude Code)`);

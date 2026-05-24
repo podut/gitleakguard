@@ -48,23 +48,7 @@ function installSkillsGlobally() {
       warn(`Failed to install ${s} to ~/.agents/skills: ${e.message}`);
     }
 
-    // 2. Gemini CLI (~/.gemini/skills/<skill>/)
-    try {
-      const destDir = path.join(os.homedir(), ".gemini", "skills", s);
-      fs.mkdirSync(destDir, { recursive: true });
-      const files = fs.readdirSync(srcDir);
-      for (const file of files) {
-        fs.copyFileSync(path.join(srcDir, file), path.join(destDir, file));
-      }
-      // Legacy name.md file copy
-      const legacyDest = path.join(os.homedir(), ".gemini", "skills", `${s}.md`);
-      fs.copyFileSync(skillMdPath, legacyDest);
-      geminiCount++;
-    } catch (e) {
-      warn(`Failed to install ${s} to ~/.gemini/skills: ${e.message}`);
-    }
-
-    // 3. Claude Code (~/.claude/commands/<skill>.md)
+    // 2. Claude Code (~/.claude/commands/<skill>.md)
     try {
       const claudeDest = path.join(os.homedir(), ".claude", "commands");
       fs.mkdirSync(claudeDest, { recursive: true });
@@ -82,7 +66,6 @@ function installSkillsGlobally() {
   }
 
   if (agentsCount > 0) ok(`Installed ${agentsCount} skills to ~/.agents/skills/ (Antigravity & Cursor)`);
-  if (geminiCount > 0) ok(`Installed ${geminiCount} skills to ~/.gemini/skills/ (Gemini)`);
   if (claudeCount > 0) ok(`Installed ${claudeCount} skills to ~/.claude/commands/ (Claude Code)`);
 }
 
