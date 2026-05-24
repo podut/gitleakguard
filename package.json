@@ -1,18 +1,23 @@
 {
-  "name": "gitkeeper",
+  "name": "leakguard",
   "version": "0.1.0",
-  "description": "One-command Git secret protection with Keeper integration",
+  "description": "One-command Git secret protection — blocks commits with exposed credentials",
   "main": "cli.js",
   "bin": {
-    "gitkeeper": "./cli.js"
+    "leakguard": "./cli.js"
   },
   "scripts": {
     "init":    "node setup/init.js",
     "scan":    "node hooks/pre-commit",
     "history": "node setup/scan-history.js"
   },
-  "keywords": ["git", "security", "secrets", "keeper", "pre-commit", "credentials"],
+  "keywords": ["git", "security", "secrets", "pre-commit", "credentials", "api-keys", "keeper"],
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/podut/leakguard.git"
+  },
+  "homepage": "https://github.com/podut/leakguard",
   "engines": {
     "node": ">=18.0.0"
   }

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * GitKeeper pre-commit hook — self-contained, no external dependencies
+ * leakguard pre-commit hook — self-contained, no external dependencies
  * Install: node setup/init.js
  * Manual:  cp hooks/pre-commit .git/hooks/pre-commit && chmod +x .git/hooks/pre-commit
  */
@@ -69,9 +69,9 @@ function scanContent(content, filePath) {
 }
 
 // --- Main ---
-console.log(`${CYAN}GitKeeper${RESET} — scanning staged files for secrets...`);
+console.log(`${CYAN}leakguard${RESET} — scanning staged files for secrets...`);
 
-if (process.env.GITKEEPER_BYPASS === "1") {
+if (process.env.LEAKGUARD_BYPASS === "1") {
   console.log(`${YELLOW}⚠  Bypass active. Skipping scan.${RESET}`);
   process.exit(0);
 }
@@ -129,6 +129,6 @@ console.log(`  4. Revoke and rotate the exposed credential\n`);
 console.log(`${BOLD}AI prompt (paste in Cursor / Claude / Gemini):${RESET}`);
 console.log(`${CYAN}  "Find all hardcoded credentials and move them to .env,`);
 console.log(`   replacing each with process.env.VARIABLE_NAME"${RESET}\n`);
-console.log(`Bypass (not recommended): ${YELLOW}GITKEEPER_BYPASS=1 git commit ...${RESET}\n`);
+console.log(`Bypass (not recommended): ${YELLOW}LEAKGUARD_BYPASS=1 git commit ...${RESET}\n`);
 
 process.exit(1);

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// GitKeeper setup — run once per repo: node setup/init.js
+// leakguard setup — run once per repo: node setup/init.js
 const { execSync, spawnSync } = require("child_process");
 const fs = require("fs");
 const path = require("path");
@@ -125,7 +125,7 @@ async function setupKeeperIntegration() {
 }
 
 async function main() {
-  console.log(`\n${BOLD}${CYAN}  GitKeeper Setup${RESET}\n`);
+  console.log(`\n${BOLD}${CYAN}  leakguard Setup${RESET}\n`);
   console.log("  Securing your commits in 4 steps...\n");
 
   if (!isGitRepo()) {
@@ -145,7 +145,7 @@ async function main() {
   await setupKeeperIntegration();
 
   rl.close();
-  console.log(`\n${GREEN}${BOLD}  ✓ GitKeeper is active.${RESET}`);
+  console.log(`\n${GREEN}${BOLD}  ✓ leakguard is active.${RESET}`);
   console.log("  Your next commit will be scanned automatically.\n");
   console.log(`  Run ${CYAN}node setup/scan-history.js${RESET} to check past commits.\n`);
 }

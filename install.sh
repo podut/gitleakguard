@@ -11,7 +11,7 @@
 
 set -e
 
-REPO="https://raw.githubusercontent.com/your-username/gitkeeper/main"
+REPO="https://raw.githubusercontent.com/podut/leakguard/main"
 HOOK_URL="$REPO/hooks/pre-commit"
 
 RED='\033[0;31m'

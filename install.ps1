@@ -16,7 +16,7 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
-$REPO = "https://raw.githubusercontent.com/your-username/gitkeeper/main"
+$REPO = "https://raw.githubusercontent.com/podut/leakguard/main"
 $utf8NoBom = [System.Text.UTF8Encoding]::new($false)
 
 function Write-Step { param($msg) Write-Host "" ; Write-Host "> $msg" -ForegroundColor Cyan }

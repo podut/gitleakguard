@@ -1,34 +1,41 @@
-# GitKeeper — Install Guide
+# leakguard — Install Guide
 
-## Quick install (npx, no setup needed)
+## One-liner install
 
+**macOS / Linux / WSL:**
 ```bash
-npx gitkeeper init
+curl -fsSL https://raw.githubusercontent.com/podut/leakguard/main/install.sh | sh
 ```
 
-Runs setup in the current git repository. Installs the pre-commit hook, updates `.gitignore`, and creates `.env.example`.
+**Windows (PowerShell):**
+```powershell
+irm https://raw.githubusercontent.com/podut/leakguard/main/install.ps1 | iex
+```
+
+---
+
+## npm / npx
+
+```bash
+# Run once without installing:
+npx leakguard init
+
+# Install globally:
+npm install -g leakguard
+leakguard init
+leakguard scan
+leakguard history
+```
 
 ---
 
 ## Commands
 
 ```bash
-npx gitkeeper init       # Setup GitKeeper in the current repo
-npx gitkeeper scan       # Manually scan staged files for secrets
-npx gitkeeper history    # Scan full git history for leaked secrets
-npx gitkeeper help       # Show all commands
-```
-
----
-
-## Global install (run anywhere without npx)
-
-```bash
-npm install -g gitkeeper
-
-gitkeeper init
-gitkeeper scan
-gitkeeper history
+leakguard init       # Setup leakguard in the current repo
+leakguard scan       # Manually scan staged files for secrets
+leakguard history    # Scan full git history for leaked secrets
+leakguard help       # Show all commands
 ```
 
 ---
@@ -36,9 +43,9 @@ gitkeeper history
 ## What init does
 
 ```
-$ npx gitkeeper init
+$ npx leakguard init
 
-  GitKeeper Setup
+  leakguard Setup
 
 ▶ Installing pre-commit hook
 ✓ Pre-commit hook installed → .git/hooks/pre-commit
@@ -49,7 +56,7 @@ $ npx gitkeeper init
 ▶ Creating .env template
 ✓ .env.example created
 
-✓ GitKeeper is active. Your next commit will be scanned automatically.
+✓ leakguard is active. Your next commit will be scanned automatically.
 ```
 
 ---
@@ -60,7 +67,7 @@ Every `git commit` is scanned automatically:
 
 ```
 $ git commit -m "add openai integration"
-GitKeeper — scanning staged files for secrets...
+leakguard — scanning staged files for secrets...
 
 ✖  Commit blocked — 1 secret(s) detected:
 
@@ -78,7 +85,7 @@ AI prompt (paste in Cursor / Claude / Gemini):
   "Find all hardcoded credentials and move them to .env,
    replacing each with process.env.VARIABLE_NAME"
 
-Bypass (not recommended): GITKEEPER_BYPASS=1 git commit ...
+Bypass (not recommended): LEAKGUARD_BYPASS=1 git commit ...
 ```
 
 ---
@@ -87,7 +94,7 @@ Bypass (not recommended): GITKEEPER_BYPASS=1 git commit ...
 
 | Type | Example pattern |
 |---|---|
-| AWS Access Key | `AKIA...` |
+| AWS Access Key | `AKIA` + 16 chars |
 | OpenAI API Key | `sk-proj-...` |
 | Anthropic API Key | `sk-ant-api03-...` |
 | GitHub Token | `ghp_...`, `github_pat_...` |
@@ -96,7 +103,7 @@ Bypass (not recommended): GITKEEPER_BYPASS=1 git commit ...
 | Slack Tokens | `xoxb-...` |
 | Private Keys | `-----BEGIN PRIVATE KEY-----` |
 | JWT Tokens | `eyJ...` |
-| DB URLs with password | `postgresql://user:pass@host` |
+| DB URLs with password | `scheme://user:pass@host` |
 | Generic secrets | `password = "..."`, `api_key = "..."` |
 
 ---
@@ -104,45 +111,24 @@ Bypass (not recommended): GITKEEPER_BYPASS=1 git commit ...
 ## Bypass (emergency only)
 
 ```bash
-GITKEEPER_BYPASS=1 git commit -m "message"
+LEAKGUARD_BYPASS=1 git commit -m "message"
 ```
 
 Not recommended. Move secrets to `.env` instead.
 
 ---
 
-## AI editor integration
+## Installer flags
 
-After `npx gitkeeper init`, add the skill to your AI editor:
-
-### Claude Code
 ```bash
-# Copy to global Claude commands (available in all projects)
-cp node_modules/gitkeeper/.claude/commands/gitkeeper.md ~/.claude/commands/
+# Hook only (no AI editor skills)
+install.sh --hook-only
+install.ps1 -HookOnly
 
-# Or keep it per-project (already in .claude/commands/ after init)
+# Skip global skills (Claude, Cursor, Gemini CLI)
+install.sh --no-editor-skills
+install.ps1 -NoEditorSkills
 ```
-Then use `/gitkeeper` in any Claude Code conversation.
-
-### Cursor
-```bash
-# Copy to global Cursor skills (available in all projects)
-cp -r node_modules/gitkeeper/.cursor/skills/gitkeeper ~/.cursor/skills/
-
-# Or keep it per-project (already in .cursor/skills/ after init)
-```
-Then use `/gitkeeper` in Cursor Agent.
-
-### Gemini CLI
-```bash
-# Package and install the skill globally
-node node_modules/gitkeeper/scripts/install-gemini-skill.js
-```
-Then use `/skills` in Gemini CLI to activate `gitkeeper`.
-
-### VSCode
-Tasks are added to `.vscode/tasks.json` automatically during init.
-Use `Ctrl+Shift+P → Tasks: Run Task → GitKeeper: Scan Staged Files`.
 
 ---
 
@@ -151,9 +137,8 @@ Use `Ctrl+Shift+P → Tasks: Run Task → GitKeeper: Scan Staged Files`.
 For SSH commit signing stored in Keeper vault:
 
 ```bash
-npx gitkeeper init
+leakguard init
 # When prompted: "Set up Keeper SSH signing? (y/N)" → type y
-# Follow the steps to connect your KSM one-time token
 ```
 
 Requires a Keeper Business or Personal account with Secrets Manager enabled.

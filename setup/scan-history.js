@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// GitKeeper retroactive scanner — checks full git history for exposed secrets
+// leakguard retroactive scanner — checks full git history for exposed secrets
 const { execSync } = require("child_process");
 const { scanContent, shouldIgnore } = require("../scanners/secrets.js");
 
@@ -10,7 +10,7 @@ const CYAN   = "\x1b[36m";
 const BOLD   = "\x1b[1m";
 const RESET  = "\x1b[0m";
 
-console.log(`\n${BOLD}${CYAN}GitKeeper — Git History Scanner${RESET}\n`);
+console.log(`\n${BOLD}${CYAN}leakguard — Git History Scanner${RESET}\n`);
 
 let commits;
 try {
