@@ -29,12 +29,23 @@ $ npx gitleakguard init
 |---|---|
 | **Pre-commit hook** | Blochează commit-ul dacă detectează credențiale |
 | **History scanner** | Scanează retroactiv tot istoricul git |
+| **AI Editor Skill** | `/gitleakguard` slash command în Claude Code, Cursor, Windsurf |
+| **Docker** | Rulează în orice CI/CD fără instalare locală |
 | **Keeper integration** | Stochează cheile SSH în vault pentru semnare commit-uri |
-| **Auto-remediation** | Oferă pași exacți + prompt gata pentru Cursor/AI |
+| **Auto-remediation** | Oferă pași exacți + prompt gata pentru orice AI editor |
 
 ---
 
 ## Instalare rapidă
+
+### AI Editor Skill (Claude Code, Cursor, Windsurf, Copilot)
+
+```bash
+npx skills add podut/gitleakguard
+```
+
+Instalează skill-ul în orice editor AI care suportă formatul Vercel Skills.
+Activează `/gitleakguard` ca slash command în Claude Code, Cursor Agent etc.
 
 ### macOS / Linux / WSL
 
@@ -181,6 +192,31 @@ services:
       - .:/repo
     command: scan
 ```
+
+---
+
+## AI Editor Skill — `npx skills add`
+
+Cel mai simplu mod de a instala skill-ul în orice editor AI compatibil:
+
+```bash
+npx skills add podut/gitleakguard
+```
+
+Sau explicit:
+```bash
+npx skills add podut/gitleakguard --skill gitleakguard
+```
+
+Skill-ul se instalează automat în directorul potrivit pentru editorul detectat.
+Activează slash command-ul `/gitleakguard` cu 4 moduri:
+
+| Comandă | Ce face |
+|---|---|
+| `/gitleakguard init` | Setup complet în repo-ul curent |
+| `/gitleakguard scan` | Scanează staged files pentru secrete |
+| `/gitleakguard history` | Scanează tot istoricul git |
+| `/gitleakguard fix` | Ghid pas cu pas pentru un credential deja expus |
 
 ---
 
