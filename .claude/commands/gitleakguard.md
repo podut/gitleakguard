@@ -1,20 +1,20 @@
-# GitKeeper — Git Secret Protection Skill
+# gitleakguard — Git Secret Protection Skill
 
-You are acting as a GitKeeper security assistant. Your job is to protect the user's code from leaking credentials and API keys into git history.
+You are acting as a gitleakguard security assistant. Your job is to protect the user's code from leaking credentials and API keys into git history.
 
 ## What this skill does
 
 When invoked, check the context and decide which mode to run:
 
-### Mode 1: Setup (`/gitkeeper init` or "setup gitkeeper")
+### Mode 1: Setup (`/gitleakguard init` or "setup gitleakguard")
 Run the setup flow:
 1. Check if we are in a git repo (`git rev-parse --git-dir`)
-2. Run `node setup/init.js` if gitkeeper is in this repo, or explain the setup steps manually
+2. Run `node setup/init.js` if gitleakguard is in this repo, or explain the setup steps manually
 3. Verify the pre-commit hook is installed in `.git/hooks/pre-commit`
 4. Ensure `.env` is in `.gitignore`
 5. Report what was set up
 
-### Mode 2: Scan staged files (`/gitkeeper scan` or "scan for secrets")
+### Mode 2: Scan staged files (`/gitleakguard scan` or "scan for secrets")
 1. Get staged files: `git diff --cached --name-only --diff-filter=ACM`
 2. For each file, look for these patterns:
    - AWS keys: `AKIA[0-9A-Z]{16}`
@@ -28,12 +28,12 @@ Run the setup flow:
 3. Report findings with file:line and a remediation prompt
 4. If clean, confirm the commit is safe
 
-### Mode 3: History scan (`/gitkeeper history` or "scan git history")
+### Mode 3: History scan (`/gitleakguard history` or "scan git history")
 1. Run `node setup/scan-history.js` or manually iterate commits
 2. Report unique secrets found across all commits
 3. Provide exact commands to clean history with `git filter-repo`
 
-### Mode 4: Fix a leaked credential (`/gitkeeper fix` or "fix leaked secret")
+### Mode 4: Fix a leaked credential (`/gitleakguard fix` or "fix leaked secret")
 When the user says they accidentally committed a secret:
 1. Ask: what file, what line, what type of credential
 2. Generate the exact steps:

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-// leakguard setup — run once per repo: node setup/init.js
-const { execSync, spawnSync } = require("child_process");
+// gitleakguard setup — run once per repo: node setup/init.js
+const { execSync } = require("child_process");
 const fs = require("fs");
 const path = require("path");
 const os = require("os");
@@ -114,6 +114,17 @@ async function setupKeeperIntegration() {
   // Configure Git SSH signing
   const sshKeyPath = path.join(os.homedir(), ".ssh", "id_ed25519");
   if (fs.existsSync(sshKeyPath)) {
+    const upload = await ask("  Upload your local SSH key to Keeper Vault? (y/N): ");
+    if (upload.toLowerCase().startsWith("y")) {
+      const title = await ask("  Enter a title for the Keeper SSH Key record (default: Gitleakguard SSH Key): ") || "Gitleakguard SSH Key";
+      try {
+        ok("Uploading SSH key to Keeper...");
+        const uid = keeper.storeSSHKeyInKeeper(sshKeyPath, title);
+        ok(`SSH key stored in Keeper. Record UID: ${uid}`);
+      } catch (e) {
+        warn(`Could not upload key to Keeper: ${e.message}`);
+      }
+    }
     const pubKey = fs.readFileSync(sshKeyPath + ".pub", "utf8").trim();
     execSync(`git config --global user.signingkey "${pubKey}"`);
     execSync('git config --global gpg.format ssh');
@@ -125,7 +136,7 @@ async function setupKeeperIntegration() {
 }
 
 async function main() {
-  console.log(`\n${BOLD}${CYAN}  leakguard Setup${RESET}\n`);
+  console.log(`\n${BOLD}${CYAN}  gitleakguard Setup${RESET}\n`);
   console.log("  Securing your commits in 4 steps...\n");
 
   if (!isGitRepo()) {
@@ -145,7 +156,7 @@ async function main() {
   await setupKeeperIntegration();
 
   rl.close();
-  console.log(`\n${GREEN}${BOLD}  ✓ leakguard is active.${RESET}`);
+  console.log(`\n${GREEN}${BOLD}  ✓ gitleakguard is active.${RESET}`);
   console.log("  Your next commit will be scanned automatically.\n");
   console.log(`  Run ${CYAN}node setup/scan-history.js${RESET} to check past commits.\n`);
 }

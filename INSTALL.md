@@ -1,15 +1,15 @@
-# leakguard — Install Guide
+# gitleakguard — Install Guide
 
 ## One-liner install
 
 **macOS / Linux / WSL:**
 ```bash
-curl -fsSL https://raw.githubusercontent.com/podut/leakguard/main/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/podut/gitleakguard/main/install.sh | sh
 ```
 
 **Windows (PowerShell):**
 ```powershell
-irm https://raw.githubusercontent.com/podut/leakguard/main/install.ps1 | iex
+irm https://raw.githubusercontent.com/podut/gitleakguard/main/install.ps1 | iex
 ```
 
 ---
@@ -18,13 +18,13 @@ irm https://raw.githubusercontent.com/podut/leakguard/main/install.ps1 | iex
 
 ```bash
 # Run once without installing:
-npx leakguard init
+npx gitleakguard init
 
 # Install globally:
-npm install -g leakguard
-leakguard init
-leakguard scan
-leakguard history
+npm install -g gitleakguard
+gitleakguard init
+gitleakguard scan
+gitleakguard history
 ```
 
 ---
@@ -32,10 +32,10 @@ leakguard history
 ## Commands
 
 ```bash
-leakguard init       # Setup leakguard in the current repo
-leakguard scan       # Manually scan staged files for secrets
-leakguard history    # Scan full git history for leaked secrets
-leakguard help       # Show all commands
+gitleakguard init       # Setup gitleakguard in the current repo
+gitleakguard scan       # Manually scan staged files for secrets
+gitleakguard history    # Scan full git history for leaked secrets
+gitleakguard help       # Show all commands
 ```
 
 ---
@@ -43,9 +43,9 @@ leakguard help       # Show all commands
 ## What init does
 
 ```
-$ npx leakguard init
+$ npx gitleakguard init
 
-  leakguard Setup
+  gitleakguard Setup
 
 ▶ Installing pre-commit hook
 ✓ Pre-commit hook installed → .git/hooks/pre-commit
@@ -56,7 +56,7 @@ $ npx leakguard init
 ▶ Creating .env template
 ✓ .env.example created
 
-✓ leakguard is active. Your next commit will be scanned automatically.
+✓ gitleakguard is active. Your next commit will be scanned automatically.
 ```
 
 ---
@@ -67,7 +67,7 @@ Every `git commit` is scanned automatically:
 
 ```
 $ git commit -m "add openai integration"
-leakguard — scanning staged files for secrets...
+gitleakguard — scanning staged files for secrets...
 
 ✖  Commit blocked — 1 secret(s) detected:
 
@@ -137,7 +137,7 @@ install.ps1 -NoEditorSkills
 For SSH commit signing stored in Keeper vault:
 
 ```bash
-leakguard init
+gitleakguard init
 # When prompted: "Set up Keeper SSH signing? (y/N)" → type y
 ```
 

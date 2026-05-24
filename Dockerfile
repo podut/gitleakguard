@@ -23,8 +23,10 @@ RUN wget -qO /tmp/sonar.zip \
 # semgrep + njsscan (Python SAST)
 RUN pip3 install --break-system-packages semgrep njsscan
 
-# retire + gitleakguard (npm)
-RUN npm install -g retire gitleakguard@latest
+# retire (npm) + local gitleakguard package
+WORKDIR /app
+COPY . .
+RUN npm install -g retire && npm install -g .
 
 WORKDIR /repo
 

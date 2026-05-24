@@ -247,7 +247,7 @@ Activează slash command-ul `/gitleakguard` cu 4 moduri:
 
 ```bash
 mkdir -p ~/.claude/commands
-curl -fsSL https://raw.githubusercontent.com/podutpetru/gitleakguard/main/.claude/commands/gitkeeper.md \
+curl -fsSL https://raw.githubusercontent.com/podutpetru/gitleakguard/main/.claude/commands/gitleakguard.md \
   > ~/.claude/commands/gitleakguard.md
 ```
 
@@ -255,7 +255,7 @@ Utilizare: `/gitleakguard scan`, `/gitleakguard fix`, `/gitleakguard history`
 
 ### Cursor
 
-**Instalare skill** (slash command `/gitkeeper` în Agent mode):
+**Instalare skill** (slash command `/gitleakguard` în Agent mode):
 ```bash
 npx skills add podut/gitleakguard
 ```
@@ -269,7 +269,7 @@ curl -fsSL https://raw.githubusercontent.com/podutpetru/gitleakguard/main/templa
 
 **Utilizare:**
 - Deschide Cursor → panel Agent (`Ctrl+L`) → mod **Agent**
-- Tastează `/gitkeeper` → apar comenzile în autocomplete
+- Tastează `/gitleakguard` → apar comenzile în autocomplete
 - Regula `alwaysApply: true` e activă automat — Cursor nu va scrie niciodată credențiale hardcodate
 
 ### Gemini CLI / Antigravity
@@ -293,9 +293,9 @@ curl -fsSL https://raw.githubusercontent.com/podutpetru/gitleakguard/main/templa
 **Utilizare:**
 ```bash
 gemini          # deschide Gemini CLI
-/gitkeeper scan
-/gitkeeper history
-/gitkeeper fix
+/gitleakguard scan
+/gitleakguard history
+/gitleakguard fix
 ```
 
 ### VSCode

@@ -2,11 +2,15 @@
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { CallToolRequestSchema, ListToolsRequestSchema } from "@modelcontextprotocol/sdk/types.js";
-import { execSync } from "node:child_process";
+import { execSync, spawnSync } from "node:child_process";
 import { readFileSync, existsSync, readdirSync } from "node:fs";
 import { resolve, join } from "node:path";
 import { request as httpsRequest } from "node:https";
 import { request as httpRequest } from "node:http";
+import { createRequire } from "node:module";
+
+const require = createRequire(import.meta.url);
+const { scanContent, shouldIgnore } = require("./scanners/secrets.js");
 
 // ENABLED_TOOLS=trivy_scan,semgrep_scan  → expose only those tools
 // unset or empty → expose all tools
@@ -14,46 +18,8 @@ const ENABLED = process.env.ENABLED_TOOLS
   ? new Set(process.env.ENABLED_TOOLS.split(",").map(t => t.trim()).filter(Boolean))
   : null;
 
-// ─── Secret patterns ──────────────────────────────────────────────────────────
-
-const PATTERNS = [
-  { name: "AWS Access Key",     regex: /AKIA[0-9A-Z]{16}/g },
-  { name: "GitHub Token",       regex: /ghp_[A-Za-z0-9]{36}|github_pat_[A-Za-z0-9_]{82}/g },
-  { name: "OpenAI API Key",     regex: /sk-[A-Za-z0-9]{48}|sk-proj-[A-Za-z0-9_-]{40,}/g },
-  { name: "Anthropic API Key",  regex: /sk-ant-api\d{2}-[A-Za-z0-9_-]{40,}/g },
-  { name: "Google API Key",     regex: /AIza[0-9A-Za-z_-]{35}/g },
-  { name: "Stripe Live Key",    regex: /sk_live_[A-Za-z0-9]{24,}/g },
-  { name: "Stripe Test Key",    regex: /sk_test_[A-Za-z0-9]{24,}/g },
-  { name: "Slack Bot Token",    regex: /xoxb-[0-9]{11,13}-[0-9]{11,13}-[a-zA-Z0-9]{24}/g },
-  { name: "Firebase Key",       regex: /AAAA[A-Za-z0-9_-]{7}:[A-Za-z0-9_-]{140}/g },
-  { name: "Private Key Block",  regex: /-----BEGIN (RSA |EC |DSA |OPENSSH )?PRIVATE KEY-----/g },
-  { name: "JWT Token",          regex: /eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}/g },
-  { name: "Credentials in URL", regex: /[a-z][a-z0-9+.-]*:\/\/[^:@\s/]+:[^@\s]{3,}@[^\s]+/g },
-  { name: "Generic Secret Var", regex: /(?:secret|password|passwd|api_key|apikey|auth_token|access_token)\s*[=:]\s*['"][^'"]{8,}['"]/gi },
-];
-
-const IGNORE = [
-  /node_modules\//, /\.git\//, /dist\//, /build\//, /\.svelte-kit\//,
-  /\.env\.example$/, /\.env\.template$/, /\.env\.sample$/,
-  /package-lock\.json$/, /yarn\.lock$/, /\.min\.js$/,
-];
-
-function ignored(p) { return IGNORE.some(r => r.test(p.replace(/\\/g, "/"))); }
-
-function scanContent(content, filePath) {
-  const findings = [];
-  const lines = content.split("\n");
-  for (const { name, regex } of PATTERNS) {
-    regex.lastIndex = 0;
-    let match;
-    while ((match = regex.exec(content)) !== null) {
-      const lineNumber = content.slice(0, match.index).split("\n").length;
-      const lineContent = lines[lineNumber - 1]?.trim() ?? "";
-      findings.push({ rule: name, file: filePath, line: lineNumber,
-        preview: lineContent.length > 100 ? lineContent.slice(0, 97) + "..." : lineContent });
-    }
-  }
-  return findings;
+function ignored(p) {
+  return shouldIgnore(p.replace(/\\/g, "/"));
 }
 
 function walkDir(dir, out = []) {
@@ -114,11 +80,16 @@ function apiPost(url, token, params = {}) {
   });
 }
 
-function runTool(cmd, opts = {}) {
+function runTool(command, args, opts = {}) {
   try {
-    return { ok: true, out: execSync(cmd, { encoding: "utf8", stdio: "pipe", timeout: 120000, ...opts }) };
+    const result = spawnSync(command, args, { encoding: "utf8", stdio: "pipe", timeout: 120000, shell: false, ...opts });
+    if (result.status === 0) {
+      return { ok: true, out: result.stdout };
+    } else {
+      return { ok: false, out: result.stdout || "", err: result.stderr || `Exited with status ${result.status}` };
+    }
   } catch (e) {
-    return { ok: false, out: e.stdout || "", err: e.stderr || e.message };
+    return { ok: false, out: "", err: e.message };
   }
 }
 
@@ -211,32 +182,75 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
   if (name === "scan_history") {
     const cwd = args.cwd ? resolve(args.cwd) : process.cwd();
     const depth = args.depth ?? 50;
-    let commits;
+    let output;
     try {
-      commits = execSync(`git log --oneline -${depth}`, { cwd, encoding:"utf8" }).trim().split("\n").filter(Boolean);
-    } catch { return txt("Error: Not a git repository."); }
+      output = execSync(`git log -p -n ${depth} --format=COMMIT:%H`, { cwd, encoding: "utf8", maxBuffer: 50 * 1024 * 1024 });
+    } catch { return txt("Error: Not a git repository or failed to run git log."); }
+    
+    const lines = output.split("\n");
+    let currentCommit = "";
+    let currentFile = "";
+    let currentLine = 0;
     const findings = [];
-    for (const line of commits) {
-      const hash = line.split(" ")[0];
-      try { findings.push(...scanContent(execSync(`git show ${hash}`, { cwd, encoding:"utf8", stdio:"pipe" }), `commit:${hash}`)); } catch {}
+    const seen = new Set();
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      if (line.startsWith("COMMIT:")) {
+        currentCommit = line.slice(7).trim();
+        currentFile = "";
+        continue;
+      }
+      if (line.startsWith("diff --git a/")) {
+        const match = line.match(/b\/(.+)$/);
+        if (match) currentFile = match[1].trim();
+        continue;
+      }
+      if (line.startsWith("@@ ")) {
+        const match = line.match(/\+(\d+)/);
+        if (match) currentLine = parseInt(match[1], 10);
+        continue;
+      }
+      if (line.startsWith("+") && !line.startsWith("+++")) {
+        if (!ignored(currentFile)) {
+          const addedContent = line.slice(1);
+          const fileFindings = scanContent(addedContent, currentFile);
+          for (const f of fileFindings) {
+            const key = `${f.rule}:${addedContent.trim()}`;
+            if (!seen.has(key)) {
+              seen.add(key);
+              findings.push({
+                ...f,
+                line: currentLine,
+                file: `commit:${currentCommit.slice(0, 8)}:${currentFile}`
+              });
+            }
+          }
+        }
+        currentLine++;
+      } else if (line.startsWith(" ")) {
+        currentLine++;
+      }
     }
+
     return findings.length === 0
-      ? txt(`✓ Scanned ${commits.length} commits — no secrets found in history.`)
-      : txt(formatFindings(findings, `SECRETS IN GIT HISTORY (last ${commits.length} commits)`) +
+      ? txt(`✓ Scanned history (last ${depth} commits) — no secrets found.`)
+      : txt(formatFindings(findings, `SECRETS IN GIT HISTORY (last ${depth} commits)`) +
           "\n\n⚠ Credentials in history are COMPROMISED. Rotate them immediately.\nRewrite history: npx git-filter-repo or BFG Repo Cleaner");
   }
 
   // ── sonarqube_scan ──
   if (name === "sonarqube_scan") {
     const dir = args.dir_path ? resolve(args.dir_path) : process.cwd();
-    const { ok, out, err } = runTool("sonar-scanner --version");
-    if (!ok) return txt("sonar-scanner not found in PATH.\nIn Docker image: already installed.\nLocally: npm install -g sonar-scanner");
+    const binary = process.platform === "win32" ? "sonar-scanner.bat" : "sonar-scanner";
+    const checkVersion = runTool(binary, ["--version"]);
+    if (!checkVersion.ok) return txt("sonar-scanner not found in PATH.\nIn Docker image: already installed.\nLocally: npm install -g sonar-scanner");
     const token = args.token || process.env.SONAR_TOKEN;
-    let cmd = "sonar-scanner";
-    if (args.project_key) cmd += ` -Dsonar.projectKey=${args.project_key}`;
-    if (args.host_url)    cmd += ` -Dsonar.host.url=${args.host_url}`;
-    if (token)            cmd += ` -Dsonar.token=${token}`;
-    const r = runTool(cmd, { cwd: dir });
+    const runArgs = [];
+    if (args.project_key) runArgs.push(`-Dsonar.projectKey=${args.project_key}`);
+    if (args.host_url)    runArgs.push(`-Dsonar.host.url=${args.host_url}`);
+    if (token)            runArgs.push(`-Dsonar.token=${token}`);
+    const r = runTool(binary, runArgs, { cwd: dir });
     return txt(r.ok ? `✓ SonarQube analysis complete.\n${r.out.slice(-500)}` : `sonar-scanner failed:\n${r.err}`);
   }
 
@@ -275,38 +289,39 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
   // ── trivy_scan ──
   if (name === "trivy_scan") {
-    const target = args.target || process.cwd();
+    const target = args.target || "/repo";
     const type = args.type || "fs";
     const severity = args.severity || "HIGH,CRITICAL";
-    const { ok, out, err } = runTool(`trivy ${type} --severity ${severity} --format table ${target}`);
-    if (!ok && err?.includes("command not found")) return txt("trivy not found.\nIn Docker image: already installed.\nLocally: https://aquasecurity.github.io/trivy/latest/getting-started/installation/");
-    return txt(ok ? (out || "✓ No vulnerabilities found.") : `trivy error:\n${err}`);
+    const r = runTool("trivy", [type, "--severity", severity, "--format", "table", target]);
+    if (!r.ok && r.err?.includes("command not found")) return txt("trivy not found.\nIn Docker image: already installed.\nLocally: https://aquasecurity.github.io/trivy/latest/getting-started/installation/");
+    return txt(r.ok ? (r.out || "✓ No vulnerabilities found.") : `trivy error:\n${r.err}`);
   }
 
   // ── semgrep_scan ──
   if (name === "semgrep_scan") {
-    const dir = args.dir_path || process.cwd();
+    const dir = args.dir_path || "/repo";
     const config = args.config || "p/security-audit";
-    const { ok, out, err } = runTool(`semgrep --config ${config} --text ${dir}`);
-    if (!ok && (err?.includes("command not found") || err?.includes("No such file")))
+    const r = runTool("semgrep", ["--config", config, "--text", dir]);
+    if (!r.ok && (r.err?.includes("command not found") || r.err?.includes("No such file")))
       return txt("semgrep not found.\nIn Docker image: already installed.\nLocally: pip install semgrep");
-    return txt(ok ? (out || "✓ No issues found.") : `semgrep output:\n${out}\n${err}`);
+    return txt(r.ok ? (r.out || "✓ No issues found.") : `semgrep output:\n${r.out}\n${r.err}`);
   }
 
   // ── njsscan_scan ──
   if (name === "njsscan_scan") {
-    const dir = args.dir_path || process.cwd();
-    const { ok, out, err } = runTool(`njsscan --text ${dir}`);
-    if (!ok && err?.includes("command not found")) return txt("njsscan not found.\nIn Docker image: already installed.\nLocally: pip install njsscan");
-    return txt(ok ? (out || "✓ No issues found.") : `njsscan output:\n${out}\n${err}`);
+    const dir = args.dir_path || "/repo";
+    const r = runTool("njsscan", ["--text", dir]);
+    if (!r.ok && r.err?.includes("command not found")) return txt("njsscan not found.\nIn Docker image: already installed.\nLocally: pip install njsscan");
+    return txt(r.ok ? (r.out || "✓ No issues found.") : `njsscan output:\n${r.out}\n${r.err}`);
   }
 
   // ── retire_scan ──
   if (name === "retire_scan") {
-    const dir = args.dir_path || process.cwd();
-    const { ok, out, err } = runTool(`retire --path ${dir} --outputformat text`);
-    if (!ok && err?.includes("command not found")) return txt("retire not found.\nIn Docker image: already installed.\nLocally: npm install -g retire");
-    return txt(ok ? (out || "✓ No vulnerable dependencies found.") : `retire output:\n${out}\n${err}`);
+    const dir = args.dir_path || "/repo";
+    const binary = process.platform === "win32" ? "retire.cmd" : "retire";
+    const r = runTool(binary, ["--path", dir, "--outputformat", "text"]);
+    if (!r.ok && r.err?.includes("command not found")) return txt("retire not found.\nIn Docker image: already installed.\nLocally: npm install -g retire");
+    return txt(r.ok ? (r.out || "✓ No vulnerable dependencies found.") : `retire output:\n${r.out}\n${r.err}`);
   }
 
   // ── zap_start_info ──

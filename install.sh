@@ -1,7 +1,7 @@
 #!/usr/bin/env sh
-# GitKeeper installer — works on macOS, Linux, WSL
+# gitleakguard installer — works on macOS, Linux, WSL
 # Usage:
-#   curl -fsSL https://raw.githubusercontent.com/your-username/gitkeeper/main/install.sh | sh
+#   curl -fsSL https://raw.githubusercontent.com/podut/gitleakguard/main/install.sh | sh
 #   Or locally: ./install.sh [--global] [--no-editor-skills]
 #
 # Flags:
@@ -92,8 +92,8 @@ install_hook() {
 
   mkdir -p "$HOOKS_DIR"
 
-  if [ -f "$HOOK_DST" ] && ! grep -q "GitKeeper" "$HOOK_DST" 2>/dev/null; then
-    warn "Existing pre-commit hook found (not GitKeeper). Backing up to pre-commit.bak"
+  if [ -f "$HOOK_DST" ] && ! grep -q "gitleakguard" "$HOOK_DST" 2>/dev/null; then
+    warn "Existing pre-commit hook found (not gitleakguard). Backing up to pre-commit.bak"
     cp "$HOOK_DST" "$HOOK_DST.bak"
   fi
 
@@ -168,19 +168,19 @@ get_file_content() {
 }
 
 install_claude_skill() {
-  TARGET="$HOME/.claude/commands/gitkeeper.md"
+  TARGET="$HOME/.claude/commands/gitleakguard.md"
   mkdir -p "$HOME/.claude/commands"
-  get_file_content ".claude/commands/gitkeeper.md" ".claude/commands/gitkeeper.md" > "$TARGET"
+  get_file_content ".claude/commands/gitleakguard.md" ".claude/commands/gitleakguard.md" > "$TARGET"
   ok "Claude Code skill → $TARGET"
-  info "Use /gitkeeper in any Claude Code conversation"
+  info "Use /gitleakguard in any Claude Code conversation"
 }
 
 install_cursor_skill() {
-  TARGET_DIR="$HOME/.cursor/skills/gitkeeper"
+  TARGET_DIR="$HOME/.cursor/skills/gitleakguard"
   mkdir -p "$TARGET_DIR"
-  get_file_content ".cursor/skills/gitkeeper/SKILL.md" ".cursor/skills/gitkeeper/SKILL.md" > "$TARGET_DIR/SKILL.md"
+  get_file_content "skills/gitleakguard/SKILL.md" "skills/gitleakguard/SKILL.md" > "$TARGET_DIR/SKILL.md"
   ok "Cursor skill → $TARGET_DIR/SKILL.md"
-  info "Use /gitkeeper in Cursor Agent mode"
+  info "Use /gitleakguard in Cursor Agent mode"
 }
 
 install_gemini_skill() {
@@ -190,22 +190,22 @@ install_gemini_skill() {
     return
   fi
 
-  SKILL_FILE="/tmp/gitkeeper-$$.skill"
+  SKILL_FILE="/tmp/gitleakguard-$$.skill"
   if command -v curl > /dev/null 2>&1; then
-    curl -fsSL "$REPO/gitkeeper.skill" -o "$SKILL_FILE" 2>/dev/null || SKILL_FILE=""
+    curl -fsSL "$REPO/gitleakguard.skill" -o "$SKILL_FILE" 2>/dev/null || SKILL_FILE=""
   fi
 
-  LOCAL="$(cd "$(dirname "$0")" && pwd)/gitkeeper.skill"
+  LOCAL="$(cd "$(dirname "$0")" && pwd)/gitleakguard.skill"
   [ -f "$LOCAL" ] && SKILL_FILE="$LOCAL"
 
   if [ -n "$SKILL_FILE" ] && [ -f "$SKILL_FILE" ]; then
     echo "Y" | gemini skills install "$SKILL_FILE" --scope user > /dev/null 2>&1 && \
       ok "Gemini CLI skill installed" && \
-      info "Run /skills reload in Gemini CLI, then use /gitkeeper" || \
-      warn "Gemini skill install failed — run manually: gemini skills install gitkeeper.skill --scope user"
-    [ "$SKILL_FILE" = "/tmp/gitkeeper-$$.skill" ] && rm -f "$SKILL_FILE"
+      info "Run /skills reload in Gemini CLI, then use /gitleakguard" || \
+      warn "Gemini skill install failed — run manually: gemini skills install gitleakguard.skill --scope user"
+    [ "$SKILL_FILE" = "/tmp/gitleakguard-$$.skill" ] && rm -f "$SKILL_FILE"
   else
-    warn "Could not get gitkeeper.skill — skipping Gemini install"
+    warn "Could not get gitleakguard.skill — skipping Gemini install"
   fi
 }
 
@@ -217,13 +217,13 @@ install_project_instructions() {
     get_file_content "templates/GEMINI.md" "templates/GEMINI.md" > GEMINI.md
     ok "GEMINI.md → project root (Gemini CLI + Antigravity)"
   else
-    # Append GitKeeper block if not already present
-    if ! grep -q "GitKeeper" GEMINI.md 2>/dev/null; then
+    # Append gitleakguard block if not already present
+    if ! grep -q "gitleakguard" GEMINI.md 2>/dev/null; then
       printf "\n" >> GEMINI.md
       get_file_content "templates/GEMINI.md" "templates/GEMINI.md" >> GEMINI.md
-      ok "GEMINI.md → GitKeeper rules appended"
+      ok "GEMINI.md → gitleakguard rules appended"
     else
-      ok "GEMINI.md already has GitKeeper rules"
+      ok "GEMINI.md already has gitleakguard rules"
     fi
   fi
 
@@ -232,22 +232,22 @@ install_project_instructions() {
     get_file_content "templates/CLAUDE.md" "templates/CLAUDE.md" > CLAUDE.md
     ok "CLAUDE.md → project root (Claude Code)"
   else
-    if ! grep -q "GitKeeper" CLAUDE.md 2>/dev/null; then
+    if ! grep -q "gitleakguard" CLAUDE.md 2>/dev/null; then
       printf "\n" >> CLAUDE.md
       get_file_content "templates/CLAUDE.md" "templates/CLAUDE.md" >> CLAUDE.md
-      ok "CLAUDE.md → GitKeeper rules appended"
+      ok "CLAUDE.md → gitleakguard rules appended"
     else
-      ok "CLAUDE.md already has GitKeeper rules"
+      ok "CLAUDE.md already has gitleakguard rules"
     fi
   fi
 
-  # .cursor/rules/gitkeeper.mdc — Cursor always-on rule (alwaysApply: true)
-  if [ ! -f ".cursor/rules/gitkeeper.mdc" ]; then
+  # .cursor/rules/gitleakguard.mdc — Cursor always-on rule (alwaysApply: true)
+  if [ ! -f ".cursor/rules/gitleakguard.mdc" ]; then
     mkdir -p .cursor/rules
-    get_file_content "templates/cursor-rule.mdc" "templates/cursor-rule.mdc" > .cursor/rules/gitkeeper.mdc
-    ok ".cursor/rules/gitkeeper.mdc → Cursor (always active)"
+    get_file_content "templates/cursor-rule.mdc" "templates/cursor-rule.mdc" > .cursor/rules/gitleakguard.mdc
+    ok ".cursor/rules/gitleakguard.mdc → Cursor (always active)"
   else
-    ok ".cursor/rules/gitkeeper.mdc already installed"
+    ok ".cursor/rules/gitleakguard.mdc already installed"
   fi
 
   # .vscode/tasks.json — VSCode run tasks
@@ -255,7 +255,7 @@ install_project_instructions() {
     mkdir -p .vscode
     get_file_content ".vscode/tasks.json" ".vscode/tasks.json" > .vscode/tasks.json
     ok ".vscode/tasks.json → VSCode run tasks"
-    info "Use Ctrl+Shift+P → Run Task → GitKeeper"
+    info "Use Ctrl+Shift+P → Run Task → Gitleakguard"
   else
     ok ".vscode/tasks.json already configured"
   fi
@@ -276,7 +276,7 @@ install_editor_skills() {
 # ── Main ──────────────────────────────────────────────────────────────────────
 
 main() {
-  printf "\n${BOLD}${CYAN}  GitKeeper${RESET} — Git secret protection\n\n"
+  printf "\n${BOLD}${CYAN}  gitleakguard${RESET} — Git secret protection\n\n"
 
   check_git
   check_node || true
@@ -308,7 +308,7 @@ main() {
     install_global_skills
   fi
 
-  printf "\n${GREEN}${BOLD}  ✓ GitKeeper is active.${RESET}\n"
+  printf "\n${GREEN}${BOLD}  ✓ gitleakguard is active.${RESET}\n"
   printf "  Your next commit will be scanned automatically.\n\n"
   printf "  Scan staged files now : ${CYAN}node hooks/pre-commit${RESET}\n"
   printf "  Scan git history      : ${CYAN}node setup/scan-history.js${RESET}\n\n"

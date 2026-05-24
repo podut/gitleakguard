@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// leakguard retroactive scanner — checks full git history for exposed secrets
+// gitleakguard retroactive scanner — checks full git history for exposed secrets
 const { execSync } = require("child_process");
 const { scanContent, shouldIgnore } = require("../scanners/secrets.js");
 
@@ -10,54 +10,68 @@ const CYAN   = "\x1b[36m";
 const BOLD   = "\x1b[1m";
 const RESET  = "\x1b[0m";
 
-console.log(`\n${BOLD}${CYAN}leakguard — Git History Scanner${RESET}\n`);
+console.log(`\n${BOLD}${CYAN}gitleakguard — Git History Scanner${RESET}\n`);
 
-let commits;
+let output;
 try {
-  commits = execSync("git log --all --format=%H", { encoding: "utf8" })
-    .trim()
-    .split("\n")
-    .filter(Boolean);
+  console.log("Retrieving full git history diffs...");
+  output = execSync("git log -p --all --format=COMMIT:%H", { encoding: "utf8", maxBuffer: 100 * 1024 * 1024 });
 } catch {
-  console.error("Not a git repo or no commits found.");
+  console.error("Not a git repo or failed to retrieve git log.");
   process.exit(1);
 }
 
-console.log(`Scanning ${commits.length} commit(s)...\n`);
+const lines = output.split("\n");
+console.log(`Scanning changes (${lines.length} lines)...`);
 
 const allFindings = [];
 const seen = new Set(); // deduplicate same secret across commits
+let currentCommit = "";
+let currentFile = "";
+let currentLine = 0;
 
-for (const commit of commits) {
-  let files;
-  try {
-    files = execSync(`git diff-tree --no-commit-id -r --name-only ${commit}`, {
-      encoding: "utf8",
-    })
-      .trim()
-      .split("\n")
-      .filter(Boolean);
-  } catch {
+for (let i = 0; i < lines.length; i++) {
+  const line = lines[i];
+  if (line.startsWith("COMMIT:")) {
+    currentCommit = line.slice(7).trim();
+    currentFile = "";
     continue;
   }
-
-  for (const file of files) {
-    if (shouldIgnore(file)) continue;
-    let content;
-    try {
-      content = execSync(`git show ${commit}:${file}`, { encoding: "utf8" });
-    } catch {
+  if (line.startsWith("diff --git a/")) {
+    const match = line.match(/b\/(.+)$/);
+    if (match) {
+      currentFile = match[1].trim();
+    }
+    continue;
+  }
+  if (line.startsWith("@@ ")) {
+    const match = line.match(/\+(\d+)/);
+    if (match) {
+      currentLine = parseInt(match[1], 10);
+    }
+    continue;
+  }
+  if (line.startsWith("+") && !line.startsWith("+++")) {
+    if (shouldIgnore(currentFile)) {
+      currentLine++;
       continue;
     }
-
-    const findings = scanContent(content, file);
+    const addedContent = line.slice(1);
+    const findings = scanContent(addedContent, currentFile);
     for (const f of findings) {
-      const key = `${f.rule}:${f.match}`;
+      const key = `${f.rule}:${addedContent.trim()}`;
       if (!seen.has(key)) {
         seen.add(key);
-        allFindings.push({ ...f, commit: commit.slice(0, 8) });
+        allFindings.push({
+          ...f,
+          line: currentLine,
+          commit: currentCommit.slice(0, 8),
+        });
       }
     }
+    currentLine++;
+  } else if (line.startsWith(" ")) {
+    currentLine++;
   }
 }
 

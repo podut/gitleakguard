@@ -1,6 +1,6 @@
-# GitKeeper installer for Windows (PowerShell 5.1+)
+# gitleakguard installer for Windows (PowerShell 5.1+)
 # Usage:
-#   irm https://raw.githubusercontent.com/your-username/gitkeeper/main/install.ps1 | iex
+#   irm https://raw.githubusercontent.com/podut/gitleakguard/main/install.ps1 | iex
 #   Or locally: .\install.ps1 [-Global] [-NoEditorSkills] [-HookOnly]
 #
 # Parameters:
@@ -78,7 +78,7 @@ function Install-Hook {
 
     New-Item -ItemType Directory -Force -Path $hooksDir | Out-Null
 
-    if ((Test-Path $hookDst) -and -not (Select-String -Path $hookDst -Pattern "GitKeeper" -Quiet -ErrorAction SilentlyContinue)) {
+    if ((Test-Path $hookDst) -and -not (Select-String -Path $hookDst -Pattern "gitleakguard" -Quiet -ErrorAction SilentlyContinue)) {
         Write-Warn "Existing pre-commit hook found. Backing up to pre-commit.bak"
         Copy-Item $hookDst "$hookDst.bak" -Force
     }
@@ -147,11 +147,11 @@ function New-EnvExample {
 
 function Install-ClaudeSkill {
     try {
-        $target  = "$HOME\.claude\commands\gitkeeper.md"
-        $content = Get-FileContent ".claude/commands/gitkeeper.md" ".claude/commands/gitkeeper.md"
+        $target  = "$HOME\.claude\commands\gitleakguard.md"
+        $content = Get-FileContent ".claude/commands/gitleakguard.md" ".claude/commands/gitleakguard.md"
         Write-FileNoBom $target $content
         Write-Ok "Claude Code -> $target"
-        Write-Info "Use /gitkeeper in any Claude Code conversation"
+        Write-Info "Use /gitleakguard in any Claude Code conversation"
     } catch {
         Write-Warn "Claude skill failed: $_"
     }
@@ -159,11 +159,11 @@ function Install-ClaudeSkill {
 
 function Install-CursorSkill {
     try {
-        $target  = "$HOME\.cursor\skills\gitkeeper\SKILL.md"
-        $content = Get-FileContent ".cursor/skills/gitkeeper/SKILL.md" ".cursor/skills/gitkeeper/SKILL.md"
+        $target  = "$HOME\.cursor\skills\gitleakguard\SKILL.md"
+        $content = Get-FileContent "skills/gitleakguard/SKILL.md" "skills/gitleakguard/SKILL.md"
         Write-FileNoBom $target $content
         Write-Ok "Cursor -> $target"
-        Write-Info "Use /gitkeeper in Cursor Agent mode"
+        Write-Info "Use /gitleakguard in Cursor Agent mode"
     } catch {
         Write-Warn "Cursor skill failed: $_"
     }
@@ -176,7 +176,7 @@ function Install-GeminiSkill {
         return
     }
 
-    $local = Join-Path (Get-ScriptRoot) "gitkeeper.skill"
+    $local = Join-Path (Get-ScriptRoot) "gitleakguard.skill"
     $skillFile = $null
 
     if (Test-Path $local) {
@@ -184,10 +184,10 @@ function Install-GeminiSkill {
     } else {
         try {
             $tmp = [System.IO.Path]::GetTempFileName() + ".skill"
-            Invoke-WebRequest -Uri "$REPO/gitkeeper.skill" -OutFile $tmp -UseBasicParsing -ErrorAction Stop
+            Invoke-WebRequest -Uri "$REPO/gitleakguard.skill" -OutFile $tmp -UseBasicParsing -ErrorAction Stop
             $skillFile = $tmp
         } catch {
-            Write-Warn "Could not get gitkeeper.skill -- skipping Gemini"
+            Write-Warn "Could not get gitleakguard.skill -- skipping Gemini"
             return
         }
     }
@@ -195,9 +195,9 @@ function Install-GeminiSkill {
     try {
         "Y" | gemini skills install $skillFile --scope user 2>$null
         Write-Ok "Gemini CLI skill installed"
-        Write-Info "Run /skills reload in Gemini CLI, then use /gitkeeper"
+        Write-Info "Run /skills reload in Gemini CLI, then use /gitleakguard"
     } catch {
-        Write-Warn "Gemini install failed. Run: gemini skills install gitkeeper.skill --scope user"
+        Write-Warn "Gemini install failed. Run: gemini skills install gitleakguard.skill --scope user"
     } finally {
         if ($skillFile -ne $local -and (Test-Path $skillFile)) { Remove-Item $skillFile -Force }
     }
@@ -214,11 +214,11 @@ function Install-ProjectInstructions {
         if (-not (Test-Path $geminiMd)) {
             Write-FileNoBom $geminiMd $content
             Write-Ok "GEMINI.md -> project root (Gemini CLI + Antigravity)"
-        } elseif (-not (Select-String -Path $geminiMd -Pattern "GitKeeper" -Quiet -ErrorAction SilentlyContinue)) {
+        } elseif (-not (Select-String -Path $geminiMd -Pattern "gitleakguard" -Quiet -ErrorAction SilentlyContinue)) {
             Add-Content -Path $geminiMd -Value "`n$content" -Encoding UTF8
-            Write-Ok "GEMINI.md -> GitKeeper rules appended"
+            Write-Ok "GEMINI.md -> gitleakguard rules appended"
         } else {
-            Write-Ok "GEMINI.md already has GitKeeper rules"
+            Write-Ok "GEMINI.md already has gitleakguard rules"
         }
     } catch { Write-Warn "GEMINI.md failed: $_" }
 
@@ -229,24 +229,24 @@ function Install-ProjectInstructions {
         if (-not (Test-Path $claudeMd)) {
             Write-FileNoBom $claudeMd $content
             Write-Ok "CLAUDE.md -> project root (Claude Code)"
-        } elseif (-not (Select-String -Path $claudeMd -Pattern "GitKeeper" -Quiet -ErrorAction SilentlyContinue)) {
+        } elseif (-not (Select-String -Path $claudeMd -Pattern "gitleakguard" -Quiet -ErrorAction SilentlyContinue)) {
             Add-Content -Path $claudeMd -Value "`n$content" -Encoding UTF8
-            Write-Ok "CLAUDE.md -> GitKeeper rules appended"
+            Write-Ok "CLAUDE.md -> gitleakguard rules appended"
         } else {
-            Write-Ok "CLAUDE.md already has GitKeeper rules"
+            Write-Ok "CLAUDE.md already has gitleakguard rules"
         }
     } catch { Write-Warn "CLAUDE.md failed: $_" }
 
-    # .cursor/rules/gitkeeper.mdc — Cursor alwaysApply rule
-    $cursorRule = Join-Path $cwd ".cursor/rules/gitkeeper.mdc"
+    # .cursor/rules/gitleakguard.mdc — Cursor alwaysApply rule
+    $cursorRule = Join-Path $cwd ".cursor/rules/gitleakguard.mdc"
     if (-not (Test-Path $cursorRule)) {
         try {
             $content = Get-FileContent "templates/cursor-rule.mdc" "templates/cursor-rule.mdc"
             Write-FileNoBom $cursorRule $content
-            Write-Ok ".cursor/rules/gitkeeper.mdc -> Cursor (always active)"
+            Write-Ok ".cursor/rules/gitleakguard.mdc -> Cursor (always active)"
         } catch { Write-Warn "Cursor rule failed: $_" }
     } else {
-        Write-Ok ".cursor/rules/gitkeeper.mdc already installed"
+        Write-Ok ".cursor/rules/gitleakguard.mdc already installed"
     }
 
     # .vscode/tasks.json
@@ -256,7 +256,7 @@ function Install-ProjectInstructions {
             $content = Get-FileContent ".vscode/tasks.json" ".vscode/tasks.json"
             Write-FileNoBom $vscodeTask $content
             Write-Ok ".vscode/tasks.json -> VSCode run tasks"
-            Write-Info "Use Ctrl+Shift+P > Run Task > GitKeeper"
+            Write-Info "Use Ctrl+Shift+P > Run Task > Gitleakguard"
         } catch { Write-Warn "VSCode tasks failed: $_" }
     } else {
         Write-Ok ".vscode/tasks.json already configured"
@@ -273,23 +273,12 @@ function Install-GlobalSkills {
 function Install-EditorSkills {
     Install-ProjectInstructions
     Install-GlobalSkills
-
-    # legacy block kept for compat — cursor rule now in Install-ProjectInstructions
-    if (-not (Test-Path ".cursor/rules/gitkeeper.mdc")) {
-        try {
-            $content = Get-FileContent ".cursor/rules/gitkeeper.mdc" ".cursor/rules/gitkeeper.mdc"
-            Write-FileNoBom ".cursor/rules/gitkeeper.mdc" $content
-            Write-Ok "Cursor project rule -> .cursor/rules/gitkeeper.mdc"
-        } catch {
-            Write-Warn "Cursor rule failed: $_"
-        }
-    }
 }
 
 # ── Main ──────────────────────────────────────────────────────────────────────
 
 Write-Host ""
-Write-Host "  GitKeeper -- Git secret protection" -ForegroundColor Cyan
+Write-Host "  gitleakguard -- Git secret protection" -ForegroundColor Cyan
 Write-Host ""
 
 Test-Prerequisites
@@ -323,7 +312,7 @@ if (-not $NoEditorSkills) {
 }
 
 Write-Host ""
-Write-Host "  [OK] GitKeeper is active." -ForegroundColor Green
+Write-Host "  [OK] gitleakguard is active." -ForegroundColor Green
 Write-Host "  Your next commit will be scanned automatically."
 Write-Host ""
 Write-Host "  Scan staged files now : " -NoNewline

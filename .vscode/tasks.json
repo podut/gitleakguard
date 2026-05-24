@@ -2,7 +2,7 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "label": "GitKeeper: Setup",
+      "label": "Gitleakguard: Setup",
       "type": "shell",
       "command": "node ${workspaceFolder}/setup/init.js",
       "group": "build",
@@ -13,7 +13,7 @@
       "problemMatcher": []
     },
     {
-      "label": "GitKeeper: Scan Staged Files",
+      "label": "Gitleakguard: Scan Staged Files",
       "type": "shell",
       "command": "node ${workspaceFolder}/hooks/pre-commit",
       "group": "test",
@@ -24,7 +24,7 @@
       "problemMatcher": []
     },
     {
-      "label": "GitKeeper: Scan Git History",
+      "label": "Gitleakguard: Scan Git History",
       "type": "shell",
       "command": "node ${workspaceFolder}/setup/scan-history.js",
       "group": "test",

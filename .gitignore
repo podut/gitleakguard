@@ -4,3 +4,8 @@ package-lock.json
 .claude/
 skills-lock.json
 *.log
+.env
+.env.local
+.env.*.local
+*.pem
+*.key

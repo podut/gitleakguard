@@ -42,7 +42,8 @@ function installSkill(name) {
 }
 
 function showHelp() {
-  console.log(`\n${BOLD}${CYAN}gitleakguard${RESET} v1.2.0 — Git secret protection + security tools\n`);
+  const pkg = require("./package.json");
+  console.log(`\n${BOLD}${CYAN}gitleakguard${RESET} v${pkg.version} — Git secret protection + security tools\n`);
   console.log(`${BOLD}Usage:${RESET} gitleakguard <command> [subcommand] [options]\n`);
 
   console.log(`${BOLD}Core commands:${RESET}`);

@@ -1,13 +1,13 @@
 ---
 description: >
-  GitKeeper secret protection — scans for hardcoded API keys, tokens, passwords,
+  Gitleakguard secret protection — scans for hardcoded API keys, tokens, passwords,
   and credentials. Active on every commit, push, code generation, and file review.
   Blocks commits with exposed secrets and auto-uses environment variables.
 globs: ["**/*"]
 alwaysApply: true
 ---
 
-# GitKeeper — Always-On Secret Protection
+# Gitleakguard — Always-On Secret Protection
 
 ## Rule 1: NEVER write hardcoded secrets in generated code
 
@@ -89,7 +89,7 @@ Replace immediately with the env var form and note:
 |---|---|
 | AWS Access Key | Starts with `AKIA`, followed by 16 uppercase alphanumeric chars |
 | GitHub Token | Starts with `ghp_` (36 chars) or `github_pat_` (82 chars) |
-| OpenAI Key | Starts with `sk-` (48+ chars) or `sk-proj-` (40+ chars) |
+| OpenAI Key | Starts with `sk-` (48+ chars) or `sk-proj-` (100+ chars) |
 | Anthropic Key | Starts with `sk-ant-api03-` (95+ chars) |
 | Google API Key | Starts with `AIza` followed by 35 chars |
 | Stripe Live | Starts with `sk_live_` (24+ chars) |

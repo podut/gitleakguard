@@ -35,12 +35,37 @@ function shouldIgnore(filePath) {
 
 function scanContent(content, filePath) {
   const findings = [];
+  const lines = content.split("\n");
+  
+  // Precompute line starting indices for high performance
+  const lineOffsets = [0];
+  for (let i = 0; i < content.length; i++) {
+    if (content[i] === "\n") {
+      lineOffsets.push(i + 1);
+    }
+  }
+
+  // Fast binary search to find line number from character index
+  function getLineNumber(index) {
+    let low = 0;
+    let high = lineOffsets.length - 1;
+    while (low <= high) {
+      const mid = Math.floor((low + high) / 2);
+      if (lineOffsets[mid] <= index) {
+        low = mid + 1;
+      } else {
+        high = mid - 1;
+      }
+    }
+    return low; // 1-based line number
+  }
+
   for (const { name, regex } of PATTERNS) {
     regex.lastIndex = 0;
     let match;
     while ((match = regex.exec(content)) !== null) {
-      const lineNumber = content.slice(0, match.index).split("\n").length;
-      const lineContent = content.split("\n")[lineNumber - 1].trim();
+      const lineNumber = getLineNumber(match.index);
+      const lineContent = lines[lineNumber - 1]?.trim() ?? "";
       findings.push({
         rule: name,
         file: filePath,

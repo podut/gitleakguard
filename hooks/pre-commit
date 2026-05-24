@@ -15,15 +15,18 @@ const RESET  = "\x1b[0m";
 const BOLD   = "\x1b[1m";
 
 // --- Secret patterns (self-contained, no require) ---
+// Keep in sync with scanners/secrets.js
 const PATTERNS = [
   { name: "AWS Access Key",      regex: /AKIA[0-9A-Z]{16}/g },
+  { name: "AWS Secret Key",      regex: /(?<![A-Za-z0-9/+=])[A-Za-z0-9/+=]{40}(?![A-Za-z0-9/+=])/g },
   { name: "GitHub Token",        regex: /ghp_[A-Za-z0-9]{36}|github_pat_[A-Za-z0-9_]{82}/g },
-  { name: "OpenAI API Key",      regex: /sk-[A-Za-z0-9]{48}|sk-proj-[A-Za-z0-9_-]{40,}/g },
-  { name: "Anthropic API Key",   regex: /sk-ant-api\d{2}-[A-Za-z0-9_-]{40,}/g },
+  { name: "OpenAI API Key",      regex: /sk-[A-Za-z0-9]{48}|sk-proj-[A-Za-z0-9_-]{100,}/g },
+  { name: "Anthropic API Key",   regex: /sk-ant-api\d{2}-[A-Za-z0-9_-]{95}/g },
   { name: "Google API Key",      regex: /AIza[0-9A-Za-z_-]{35}/g },
-  { name: "Stripe Live Key",     regex: /sk_live_[A-Za-z0-9]{24,}/g },
+  { name: "Stripe Secret Key",   regex: /sk_live_[A-Za-z0-9]{24,}/g },
   { name: "Stripe Test Key",     regex: /sk_test_[A-Za-z0-9]{24,}/g },
   { name: "Slack Bot Token",     regex: /xoxb-[0-9]{11,13}-[0-9]{11,13}-[a-zA-Z0-9]{24}/g },
+  { name: "Slack User Token",    regex: /xoxp-[0-9-]{30,}/g },
   { name: "Firebase Config",     regex: /AAAA[A-Za-z0-9_-]{7}:[A-Za-z0-9_-]{140}/g },
   { name: "Private Key Block",   regex: /-----BEGIN (RSA |EC |DSA |OPENSSH )?PRIVATE KEY-----/g },
   { name: "JWT Token",           regex: /eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}/g },
@@ -69,9 +72,9 @@ function scanContent(content, filePath) {
 }
 
 // --- Main ---
-console.log(`${CYAN}leakguard${RESET} — scanning staged files for secrets...`);
+console.log(`${CYAN}gitleakguard${RESET} — scanning staged files for secrets...`);
 
-if (process.env.LEAKGUARD_BYPASS === "1") {
+if (process.env.GITLEAKGUARD_BYPASS === "1" || process.env.LEAKGUARD_BYPASS === "1") {
   console.log(`${YELLOW}⚠  Bypass active. Skipping scan.${RESET}`);
   process.exit(0);
 }
@@ -129,6 +132,6 @@ console.log(`  4. Revoke and rotate the exposed credential\n`);
 console.log(`${BOLD}AI prompt (paste in Cursor / Claude / Gemini):${RESET}`);
 console.log(`${CYAN}  "Find all hardcoded credentials and move them to .env,`);
 console.log(`   replacing each with process.env.VARIABLE_NAME"${RESET}\n`);
-console.log(`Bypass (not recommended): ${YELLOW}LEAKGUARD_BYPASS=1 git commit ...${RESET}\n`);
+console.log(`Bypass (not recommended): ${YELLOW}GITLEAKGUARD_BYPASS=1 git commit ...${RESET}\n`);
 
 process.exit(1);

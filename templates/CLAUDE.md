@@ -1,6 +1,6 @@
-# GitKeeper — Secret Protection Active
+# Gitleakguard — Secret Protection Active
 
-GitKeeper is installed in this project. Apply all rules below automatically and proactively.
+Gitleakguard is installed in this project. Apply all rules below automatically and proactively.
 Do not wait for the user to ask. Treat credential leaks as blocking issues.
 
 ---
