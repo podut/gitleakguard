@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "gitleakguard": {
+      "command": "npx",
+      "args": ["-y", "gitleakguard-mcp"],
+      "description": "Secret scanner — scan staged files, files, directories, and git history"
+    }
+  }
+}

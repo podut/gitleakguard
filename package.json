@@ -1,10 +1,11 @@
 {
   "name": "gitleakguard",
-  "version": "1.0.2",
+  "version": "1.1.0",
   "description": "One-command Git secret protection — blocks commits with exposed credentials",
   "main": "cli.js",
   "bin": {
-    "gitleakguard": "cli.js"
+    "gitleakguard": "cli.js",
+    "gitleakguard-mcp": "mcp-server.mjs"
   },
   "scripts": {
     "init": "node setup/init.js",
@@ -20,6 +21,9 @@
     "api-keys",
     "keeper"
   ],
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.12.0"
+  },
   "license": "MIT",
   "repository": {
     "type": "git",
